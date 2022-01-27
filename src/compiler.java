@@ -6,6 +6,9 @@
  * @date 27 January 2022
  */
 
-public static void main(String[] args){
+public compiler{
+    public static void main(String[] args){
 
-        }
+    }
+}
+
