@@ -1,7 +1,7 @@
 # 6502a-compiler
 
 ## Description
-This program is a compiler written using Java. To run this compiler, download the source code and run it on the command line using a text file as input. For example:
+This program is a compiler written using Java. To run this compiler, download the source code and run it on the command line using a text file as input. For example: \n
 java compiler text.txt
 
 ## Grammar
