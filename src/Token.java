@@ -1,5 +1,5 @@
 /**
- * This class is for the tokens of lexer. It will store their description, line number,
+ * This class is for the tokens of lexer. It will store their attribute, line number,
  * and any other needed information
  *
  * @author Chris Pellerito
@@ -11,12 +11,12 @@ public class Token {
 
     public int linePosition;
 
-    public String description;
+    public String attribute;
 
-    public void token(int lineNumber, int linePosition, String description){
+    public void token(int lineNumber, int linePosition, String attribute){
         this.lineNumber = lineNumber;
         this.linePosition = linePosition;
-        this.description = description;
+        this.attribute = attribute;
     }
 
 }
