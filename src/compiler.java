@@ -6,7 +6,7 @@
  * @date 27 January 2022
  */
 
-public compiler{
+public class compiler{
     public static void main(String[] args){
 
     }
