@@ -6,6 +6,9 @@
  */
 
 public class Token {
+    public enum grammar{
+        TYPE
+    }
 
     public int lineNumber;
 
@@ -13,10 +16,17 @@ public class Token {
 
     public String attribute;
 
-    public void token(int lineNumber, int linePosition, String attribute){
+    public grammar type;
+
+    public Token(int lineNumber, int linePosition, String attribute, grammar type){
         this.lineNumber = lineNumber;
         this.linePosition = linePosition;
         this.attribute = attribute;
+        this.type = type;
+    }
+
+    public void printToken(Token input){
+
     }
 
 }
