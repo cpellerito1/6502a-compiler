@@ -7,7 +7,8 @@
 
 public class Token {
     public enum grammar{
-        TYPE
+        TYPE, L_BRACE, R_BRACE, ID, CHAR, BOOL_VAL, BOOL_OP, EQUAL_OP, ASSIGN_OP,
+        IN_EQUAL_OP, ERROR, EOP, DIGIT
     }
 
     public int lineNumber;
@@ -25,7 +26,15 @@ public class Token {
         this.type = type;
     }
 
-    public void printToken(Token input){
+    /**
+     * This method prints the token
+     * @param input Token from tokenStream
+     */
+    public static void printToken(Token input){
+       System.out.printf("%s%s%s%s%s%s%s%d%s%d%s%n","VERBOSE", "Lexer -", input.type, "[", input.attribute, "]",
+                "found at (", input.lineNumber,":",input.linePosition,")");
+        //System.out.println("VERBOSE  Lexer -  " + input.type + "  [  " + input.attribute + "  ]  found at (" +
+          //      input.lineNumber + ":" + input.linePosition + ")");
 
     }
 
