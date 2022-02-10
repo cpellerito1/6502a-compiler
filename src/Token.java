@@ -7,8 +7,8 @@
 
 public class Token {
     public enum grammar{
-        TYPE, L_BRACE, R_BRACE, ID, CHAR, BOOL_VAL, BOOL_OP, EQUAL_OP, ASSIGN_OP,
-        IN_EQUAL_OP, ERROR, EOP, DIGIT
+        TYPE, L_BRACE, R_BRACE, ID, CHAR, BOOL_VAL, ADD_OP, EQUAL_OP, ASSIGN_OP,
+        IN_EQUAL_OP, ERROR, EOP, DIGIT, WARNING, SPACE, QUOTE
     }
 
     public int lineNumber;
