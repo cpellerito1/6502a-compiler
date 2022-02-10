@@ -1,3 +1,5 @@
+import java.util.List;
+
 /**
  * This class is for the tokens of lexer. It will store their attribute, line number,
  * and any other needed information
@@ -8,7 +10,8 @@
 public class Token {
     public enum grammar{
         TYPE, L_BRACE, R_BRACE, ID, CHAR, BOOL_VAL, ADD_OP, EQUAL_OP, ASSIGN_OP,
-        IN_EQUAL_OP, ERROR, EOP, DIGIT, WARNING, SPACE, QUOTE
+        IN_EQUAL_OP, ERROR, EOP, DIGIT, WARNING, SPACE, QUOTE, R_PARAN, L_PARAN,
+        KEYWORD
     }
 
     public int lineNumber;
@@ -30,11 +33,11 @@ public class Token {
      * This method prints the token
      * @param input Token from tokenStream
      */
-    public static void printToken(Token input){
-       System.out.printf("%s%s%s%s%s%s%s%d%s%d%s%n","VERBOSE", "Lexer -", input.type, "[", input.attribute, "]",
-                "found at (", input.lineNumber,":",input.linePosition,")");
-        //System.out.println("VERBOSE  Lexer -  " + input.type + "  [  " + input.attribute + "  ]  found at (" +
-          //      input.lineNumber + ":" + input.linePosition + ")");
+    public static void printToken(List<Token> input){
+        for (Token token : input) {
+            System.out.println("VERBOSE Lexer - " + token.type + " [ " + token.attribute + " ] found at (" +
+                    token.lineNumber + ":" + token.linePosition + ")");
+        }
 
     }
 
