@@ -6,3 +6,6 @@ java compiler text.txt
 
 ## Grammar
 The grammar for this compiler can be found here: https://www.labouseur.com/courses/compilers/grammar.pdf
+
+## Grading
+I will be developing on main and pushing to project branches so please grade project 1 branch
