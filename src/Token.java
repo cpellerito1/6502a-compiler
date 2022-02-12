@@ -34,10 +34,23 @@ public class Token {
      * @param input Token from tokenStream
      */
     public static void printToken(List<Token> input){
+        int errors = 0;
+        int warnings = 0;
+
         for (Token token : input) {
-            System.out.println("VERBOSE Lexer - " + token.type + " [ " + token.attribute + " ] found at (" +
+            if (token.type == grammar.ERROR) {
+                errors++;
+                System.out.println("Error: " + token.attribute + " at " + token.lineNumber + ":" +token.linePosition);
+            } else if (token.type == grammar.WARNING){
+                warnings++;
+                System.out.println("Warning: " + token.attribute + " at " + token.lineNumber + ":" +token.linePosition);
+            }
+            else
+                System.out.println("VERBOSE Lexer - " + token.type + " [ " + token.attribute + " ] found at (" +
                     token.lineNumber + ":" + token.linePosition + ")");
         }
+
+        System.out.println("Program finished with " + errors + " errors and " + warnings + " warnings");
 
     }
 

@@ -26,23 +26,15 @@ public class compiler {
     // Temp token used to keep the order of the tokens correct in special cases
     public static Token tempToken;
 
-    // Keep track of # of errors and warnings
-    public static int error = 0;
-    public static int warning = 0;
-
-
-
     /**
      * main method
      * @param args
      * @throws Exception
      */
     public static void main(String[] args) throws Exception {
-        // Use readFile method to read file from standard input into an ArrayList
-        //ArrayList<char[]> inputFile = new ArrayList<char[]>();
-        
-        //char[] inputFile = readFile(args[0]);
-        char[] inputFile = readFile("C:\\Users\\cpell\\Documents\\compiler\\src\\test.txt");
+        // Use readFile method to read file from standard input into a char array
+        char[] inputFile = readFile(args[0]);
+        //char[] inputFile = readFile("C:\\Users\\cpell\\Documents\\compiler\\src\\test.txt");
 
         System.out.println("LEXER");
         lexer(inputFile);
@@ -63,13 +55,12 @@ public class compiler {
         // Loop through the entire char array
         while (current < inputFile.length) {
             // Make sure character is in the grammar
-            if (!all.matcher(String.copyValueOf(inputFile, current,1)).find() || !isBoundry(inputFile[current]))
-                tokenStream.add(new Token(line, current,
-                        "unexpected character" + inputFile[current], Token.grammar.ERROR));
+           // if (!all.matcher(String.copyValueOf(inputFile, current,1)).find() || !isBoundry(inputFile[current]))
+             //   tokenStream.add(new Token(line, current,
+               //"unexpected character" + inputFile[current], Token.grammar.ERROR));
             // Check if the current char is a boundry
             if (isBoundry(inputFile[current])) {
                 if (inputFile[current] == '{') {
-                    System.out.println("worked {");
                     // Add the token to the tokenStream using the line, current position, attribute, and enum type
                     tokenStream.add(new Token(line, current, "{", Token.grammar.L_BRACE));
                     // Increment the pointers to get next character
@@ -79,7 +70,6 @@ public class compiler {
                     continue;
 
                 } else if (inputFile[current] == '}') {
-                    System.out.println("worked }");
                     tokenStream.add(new Token(line, current, "}", Token.grammar.R_BRACE));
                     current++;
                     prev = current;
@@ -155,6 +145,7 @@ public class compiler {
                     } else {
                         tokenStream.add(new Token(line, current,
                                 "unknown character \"/\"", Token.grammar.ERROR));
+
                         current++;
                         prev = current;
                     }
@@ -175,33 +166,36 @@ public class compiler {
                     tokenStream.add(new Token(line, current, "\"", Token.grammar.QUOTE));
                     current++;
                     prev = current;
+
+                    // Use a temp variable to loop through so current can still be used for proper line positioning
+                    int temp = current;
                     // Find the next quote, use a try catch to make sure we don't get an index out of bounds.
                     try {
-                        while (inputFile[current] != '"')
-                            current++;
+                        while (inputFile[temp] != '"')
+                            temp++;
                     } catch (Exception e) {
                         // If the file ends and the quote isn't terminated create a warning token
-                        tokenStream.add(new Token(line, current,
+                        tokenStream.add(new Token(line, temp,
                                 "unclosed quote at end of file", Token.grammar.WARNING));
                     }
 
                     // If the last token is a warning add it to a temp variable and then remove it and add it back
-                    // after the tokenStream from strinLexer gets returned. This keeps the tokens in the correct order
+                    // after the tokenStream from stringLexer gets returned. This keeps the tokens in the correct order
                     if (tokenStream.get(tokenStream.size() - 1).type == Token.grammar.WARNING) {
                         tempToken = tokenStream.get(tokenStream.size() - 1);
                         tokenStream.remove(tokenStream.size() - 1);
                     }
 
                     // Take everything in the quote and add it to a new char array for readibility
-                    char[] temp = String.copyValueOf(inputFile, prev, current - prev).toCharArray();
+                    char[] tempArray = String.copyValueOf(inputFile, prev, temp - prev).toCharArray();
                     // Run stringLexer method using the char array just created
-                    tokenStream.addAll(stringLexer(temp, current));
+                    tokenStream.addAll(stringLexer(tempArray));
 
                     // If the temp token was filled add it to the end of the tokenStream and empty it
                     if (tempToken != null) {
                         tokenStream.add(tempToken);
                         tempToken = null;
-                        // If it wasn't that means the quote was closed so add the token
+                    // If it wasn't that means the quote was closed so add the token
                     } else
                         tokenStream.add(new Token(line, current, "\"", Token.grammar.QUOTE));
 
@@ -210,7 +204,7 @@ public class compiler {
                     continue;
 
                 } else if (inputFile[current] == '(') {
-                    tokenStream.add(new Token(line, current, "(", Token.grammar.R_PARAN));
+                    tokenStream.add(new Token(line, current, "(", Token.grammar.L_PARAN));
                     current++;
                     prev = current;
                     continue;
@@ -235,21 +229,18 @@ public class compiler {
             } else
                 inputString = String.copyValueOf(inputFile, prev, (current - prev) + 1);
 
-            System.out.println("Input: " + inputString.toString());
             if (type.matcher(inputString).find()) {
                 tokenStream.add(new Token(line, prev, inputString, Token.grammar.TYPE));
                 current++;
                 prev = current;
 
             } else if (bool.matcher(inputString).find()) {
-                System.out.println("worked true");
                 // Add token
                 tokenStream.add(new Token(line, prev, inputString, Token.grammar.BOOL_VAL));
                 current++;
                 prev = current;
 
             } else if (keyword.matcher(inputString).find()){
-                System.out.println("Worked key");
                 tokenStream.add(new Token(line, prev, inputString, Token.grammar.KEYWORD));
                 current++;
                 prev = current;
@@ -257,7 +248,6 @@ public class compiler {
             } else if (character.matcher(inputString).find()) {
                 try {
                     if (isBoundry(inputFile[current + 1])) {
-                        System.out.println("worked char");
                         // Since next char is a boundry this must be an ID, so create token
                         tokenStream.add(new Token(line, prev, String.valueOf(inputFile[current]),
                                 Token.grammar.ID));
@@ -272,7 +262,6 @@ public class compiler {
                 }
 
             } else if (digit.matcher(inputString).find()) {
-                System.out.println("worked dig");
                 tokenStream.add(new Token(line, prev, inputString, Token.grammar.DIGIT));
                 current++;
                 prev = current;
@@ -280,6 +269,13 @@ public class compiler {
             } else
                 current++;
 
+        }
+
+        // Make sure tokenStream is empty and the last token in there is an EOP
+        if (!tokenStream.isEmpty() && tokenStream.get(tokenStream.size() - 1).type  != Token.grammar.EOP) {
+                tokenStream.add(new Token(line, current,
+                        "file ended with no end of program", Token.grammar.WARNING));
+                Token.printToken(tokenStream);
         }
 
         return tokenStream;
@@ -306,10 +302,9 @@ public class compiler {
      * Makes the code cleaner and easier to read so the Lexer method doesn't need to worry about
      * checking if every char it finds is a part of a string.
      * @param input char array of all characters in between the quotes
-     * @param current current index of the first char so the token will have the correct positions
      * @return
      */
-    public static List<Token> stringLexer(char[] input, int current){
+    public static List<Token> stringLexer(char[] input){
         List<Token> tempToken = new ArrayList<Token>();
         for (int i = 0; i < input.length; i++){
             // String representation of current char so regex can read it
@@ -328,7 +323,8 @@ public class compiler {
                 line++;
             }
             else
-                tempToken.add(new Token(line, current, inputString, Token.grammar.ERROR));
+                tempToken.add(new Token(line, current,
+                        "unexpected character " + inputString, Token.grammar.ERROR));
 
             // Increment current to keep the line position consistent
             current++;
