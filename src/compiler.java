@@ -16,7 +16,7 @@ public class compiler {
     public static Pattern bool = Pattern.compile("true|false");
     public static Pattern digit = Pattern.compile("[0|1|2|3|4|5|6|7|8|9]");
     public static Pattern keyword = Pattern.compile("while|if|print");
-    public static Pattern all = Pattern.compile("[a-z]|[0-9]");
+    public static Pattern all = Pattern.compile("[a-z|0-9]");
 
     // Make these global too allow for accurate position tracking across multiple methods
     public static int line = 1;
@@ -25,6 +25,9 @@ public class compiler {
 
     // Temp token used to keep the order of the tokens correct in special cases
     public static Token tempToken;
+
+    // Program counter
+    public static int counter = 0;
 
     /**
      * main method
@@ -55,9 +58,13 @@ public class compiler {
         // Loop through the entire char array
         while (current < inputFile.length) {
             // Make sure character is in the grammar
-           // if (!all.matcher(String.copyValueOf(inputFile, current,1)).find() || !isBoundry(inputFile[current]))
-             //   tokenStream.add(new Token(line, current,
-               //"unexpected character" + inputFile[current], Token.grammar.ERROR));
+            if (!all.matcher(String.copyValueOf(inputFile, current,1)).find() && !isBoundry(inputFile[current])) {
+                tokenStream.add(new Token(line, current,
+                        "unrecognized token \"" + inputFile[current] +"\"", Token.grammar.ERROR));
+                current++;
+                prev = current;
+                continue;
+            }
             // Check if the current char is a boundry
             if (isBoundry(inputFile[current])) {
                 if (inputFile[current] == '{') {
@@ -82,6 +89,7 @@ public class compiler {
                         current = current + 2;
                         prev = current - 1;
                         continue;
+
                     } else {
                         tokenStream.add(new Token(line, current, "=", Token.grammar.ASSIGN_OP));
                         current++;
@@ -96,8 +104,10 @@ public class compiler {
                         current = current + 2;
                         prev = current - 1;
                         continue;
+                        
                     } else {
-                        tokenStream.add(new Token(line, current, "!", Token.grammar.ERROR));
+                        tokenStream.add(new Token(line, current,
+                                "unrecognized token \"" + inputFile[current] + "\"", Token.grammar.ERROR));
                         current++;
                         prev = current;
                         continue;
@@ -112,19 +122,24 @@ public class compiler {
                     // Empty the tokenStream for the next program
                     tokenStream.clear();
                     // Move to next program
+                    counter++;
                     continue;
 
                 } else if (inputFile[current] == '/') {
                     if (inputFile[current + 1] == '*') {
+                        // Create a tempToken now with the line positioning of the start of the comment
+                        tempToken = new Token(line, current,
+                                "unclosed comment end of file", Token.grammar.WARNING);
                         current = current + 2;
                         // Find the end of the comment using a try catch to not get an index out of bounds.
                         try {
                             while (inputFile[current] != '*')
                                 current++;
                         } catch (Exception e){
-                            // Add a token for an unclosed comment at the end of a file
-                            tokenStream.add(new Token(line, current,
-                                    "unclosed comment at end of file", Token.grammar.WARNING));
+                            // Add token from the temp token and add to tokenStream
+                            tokenStream.add(tempToken);
+                            tempToken = null;
+                            continue;
                         }
                         // Make sure the comment gets closed correctly and doesn't throw an index out of bounds.
                         try {
@@ -132,19 +147,20 @@ public class compiler {
                                 current = current + 2;
                                 continue;
                             // If the next char isn't /, add a warning token
-                            } else
-                                tokenStream.add(new Token(line, current,
-                                        "unclosed comment at end of file", Token.grammar.WARNING));
+                            } else{
+                                tokenStream.add(tempToken);
+                                tempToken = null;
+                            }
                         // Add a warning token if the file ends and the comment wasn't closed
                         } catch (Exception e) {
-                            tokenStream.add(new Token(line, current,
-                                    "unclosed comment at end of file", Token.grammar.WARNING));
+                            tokenStream.add(tempToken);
+                            tempToken = null;
                         }
 
                     // If the next character isn't a * throw an error
                     } else {
                         tokenStream.add(new Token(line, current,
-                                "unknown character \"/\"", Token.grammar.ERROR));
+                                "unrecognized token \"/\"", Token.grammar.ERROR));
 
                         current++;
                         prev = current;
@@ -163,6 +179,9 @@ public class compiler {
                     continue;
 
                 } else if (inputFile[current] == '"') {
+                    // Make sure the tempToken is null from previous iterations
+                    tempToken = null;
+                    // Add the token for the starting quote
                     tokenStream.add(new Token(line, current, "\"", Token.grammar.QUOTE));
                     current++;
                     prev = current;
@@ -174,16 +193,10 @@ public class compiler {
                         while (inputFile[temp] != '"')
                             temp++;
                     } catch (Exception e) {
-                        // If the file ends and the quote isn't terminated create a warning token
-                        tokenStream.add(new Token(line, temp,
-                                "unclosed quote at end of file", Token.grammar.WARNING));
-                    }
-
-                    // If the last token is a warning add it to a temp variable and then remove it and add it back
-                    // after the tokenStream from stringLexer gets returned. This keeps the tokens in the correct order
-                    if (tokenStream.get(tokenStream.size() - 1).type == Token.grammar.WARNING) {
-                        tempToken = tokenStream.get(tokenStream.size() - 1);
-                        tokenStream.remove(tokenStream.size() - 1);
+                        // If the file ends and the quote isn't terminated create a warning token and add it to
+                        // temp token to keep the positioning of the tokens correct
+                        tempToken = new Token(line, current - 1,
+                                "unclosed quote at end of file", Token.grammar.WARNING);
                     }
 
                     // Take everything in the quote and add it to a new char array for readibility
@@ -229,23 +242,27 @@ public class compiler {
             } else
                 inputString = String.copyValueOf(inputFile, prev, (current - prev) + 1);
 
+            // int, string, and boolean matcher
             if (type.matcher(inputString).find()) {
                 tokenStream.add(new Token(line, prev, inputString, Token.grammar.TYPE));
                 current++;
                 prev = current;
 
+             // Boolean value matcher (true or false)
             } else if (bool.matcher(inputString).find()) {
-                // Add token
                 tokenStream.add(new Token(line, prev, inputString, Token.grammar.BOOL_VAL));
                 current++;
                 prev = current;
 
+            // Keyword matcher (print, while, if)
             } else if (keyword.matcher(inputString).find()){
                 tokenStream.add(new Token(line, prev, inputString, Token.grammar.KEYWORD));
                 current++;
                 prev = current;
 
-            } else if (character.matcher(inputString).find()) {
+            // Character matcher (length check added because I couldn't get regex to work for just one character)
+            } else if (character.matcher(inputString).find() && inputString.length() == 1) {
+                // Wrap in a try catch so it doesn't throw an index out of bounds
                 try {
                     if (isBoundry(inputFile[current + 1])) {
                         // Since next char is a boundry this must be an ID, so create token
@@ -254,13 +271,16 @@ public class compiler {
 
                         current++;
                         prev = current;
+                    // If it's not a boundry then increment and move on
                     } else
                         current++;
+
                 } catch (Exception e) {
                     tokenStream.add(new Token(line, prev, inputString, Token.grammar.ID));
                     current++;
                 }
 
+            // Number matcher
             } else if (digit.matcher(inputString).find()) {
                 tokenStream.add(new Token(line, prev, inputString, Token.grammar.DIGIT));
                 current++;
@@ -271,10 +291,12 @@ public class compiler {
 
         }
 
-        // Make sure tokenStream is empty and the last token in there is an EOP
+        // Make sure tokenStream is empty and the last token in there is an EOP. If not throw a warning and add the
+        // EOP assuming the user meant to put one as this is the end of the file
         if (!tokenStream.isEmpty() && tokenStream.get(tokenStream.size() - 1).type  != Token.grammar.EOP) {
                 tokenStream.add(new Token(line, current,
-                        "file ended with no end of program", Token.grammar.WARNING));
+                        "file ended with no end of program, EOP inserted", Token.grammar.WARNING));
+                tokenStream.add(new Token(line, current, "$", Token.grammar.EOP));
                 Token.printToken(tokenStream);
         }
 
@@ -305,7 +327,9 @@ public class compiler {
      * @return
      */
     public static List<Token> stringLexer(char[] input){
+        // temp array of tokens to return and add to the end of tokenStream
         List<Token> tempToken = new ArrayList<Token>();
+
         for (int i = 0; i < input.length; i++){
             // String representation of current char so regex can read it
             String inputString = String.copyValueOf(input, i, 1);
@@ -324,7 +348,7 @@ public class compiler {
             }
             else
                 tempToken.add(new Token(line, current,
-                        "unexpected character " + inputString, Token.grammar.ERROR));
+                        "unexpected character \"" + inputString + "\"", Token.grammar.ERROR));
 
             // Increment current to keep the line position consistent
             current++;
