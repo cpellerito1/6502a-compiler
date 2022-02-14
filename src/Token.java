@@ -12,6 +12,7 @@ public class Token {
         TYPE, L_BRACE, R_BRACE, ID, CHAR, BOOL_VAL, ADD_OP, EQUAL_OP, ASSIGN_OP,
         IN_EQUAL_OP, ERROR, EOP, DIGIT, WARNING, SPACE, QUOTE, R_PARAN, L_PARAN,
         KEYWORD
+
     }
 
     public int lineNumber;
@@ -50,7 +51,11 @@ public class Token {
                     token.lineNumber + ":" + token.linePosition + ")");
         }
 
-        System.out.println("Program finished with " + errors + " errors and " + warnings + " warnings");
+        System.out.println("Program " + compiler.counter + " finished with " + errors +
+                " errors and " + warnings + " warnings");
+
+        // Add blank line after output
+        System.out.println();
 
     }
 
