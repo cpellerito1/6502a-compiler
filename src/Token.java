@@ -34,7 +34,7 @@ public class Token {
      * This method prints the token
      * @param input Token from tokenStream
      */
-    public static void printToken(List<Token> input){
+    public static boolean printToken(List<Token> input){
         int errors = 0;
         int warnings = 0;
 
@@ -52,10 +52,12 @@ public class Token {
         }
 
         System.out.println("Program " + compiler.counter + " finished with " + errors +
-                " errors and " + warnings + " warnings");
+                " error(s) and " + warnings + " warning(s)");
 
         // Add blank line after output
         System.out.println();
+
+        return warnings <= 0;
 
     }
 

@@ -45,6 +45,32 @@ public class compiler {
     }
 
     /**
+     * This method reads the input file from standard input and adds it
+     * to a string that will be returned as an array of chars for easy parsing.
+     * A \n is added to the end of every line to make counting lines easy.
+     * @param input text file from command line
+     * @return char array containing the file
+     * @throws IOException
+     */
+    public static char[] readFile(String input) throws IOException {
+        // Read file from standard input
+        File inputFile = new File(input);
+
+        // Initialize String to read the file to.
+        String inputString = "";
+
+        // Use try to catch errors while reading the input file and adding it to a string
+        // Append a \n to the end of each line to help with line number counting.
+        try (BufferedReader br = new BufferedReader(new FileReader(inputFile))) {
+            while (br.ready())
+                inputString = inputString + br.readLine() + '\n';
+        }
+
+        // Return the string as an array of characters for easy parsing
+        return inputString.toCharArray();
+    }
+
+    /**
      * This method runs the lexical analysis of the compiler
      * @param inputFile ArrayList of char arrays that contain the file line by line
      */
@@ -104,7 +130,7 @@ public class compiler {
                         current = current + 2;
                         prev = current - 1;
                         continue;
-                        
+
                     } else {
                         tokenStream.add(new Token(line, current,
                                 "unrecognized token \"" + inputFile[current] + "\"", Token.grammar.ERROR));
@@ -112,18 +138,6 @@ public class compiler {
                         prev = current;
                         continue;
                     }
-
-                } else if (inputFile[current] == '$') {
-                    tokenStream.add(new Token(line, current, "$", Token.grammar.EOP));
-                    current++;
-                    prev = current;
-                    // Print the tokens at the end of the program
-                    Token.printToken(tokenStream);
-                    // Empty the tokenStream for the next program
-                    tokenStream.clear();
-                    // Move to next program
-                    counter++;
-                    continue;
 
                 } else if (inputFile[current] == '/') {
                     if (inputFile[current + 1] == '*') {
@@ -226,6 +240,25 @@ public class compiler {
                     tokenStream.add(new Token(line, current, ")", Token.grammar.R_PARAN));
                     current++;
                     prev = current;
+                    continue;
+
+                } else if (inputFile[current] == '$') {
+                    tokenStream.add(new Token(line, current, "$", Token.grammar.EOP));
+                    current++;
+                    prev = current;
+
+                    // printToken returns a boolean to tell if there are errors. If lexer has errors parser shouldnt run
+                    boolean isErrors = Token.printToken(tokenStream);
+                    if (!isErrors){
+                        // Insantiate parser
+                        Parser p = new Parser(tokenStream);
+                        p.parse();
+                    }
+
+                    // Empty the tokenStream for the next program
+                    tokenStream.clear();
+                    // Move to next program
+                    counter++;
                     continue;
 
                 // If the current character is a white space
@@ -355,33 +388,6 @@ public class compiler {
         }
 
         return tempToken;
-    }
-
-
-    /**
-     * This method reads the input file from standard input and adds it
-     * to a string that will be returned as an array of chars for easy parsing.
-     * A \n is added to the end of every line to make counting lines easy.
-     * @param input text file from command line
-     * @return char array containing the file
-     * @throws IOException
-     */
-    public static char[] readFile(String input) throws IOException {
-        // Read file from standard input
-        File inputFile = new File(input);
-
-        // Initialize String to read the file to.
-        String inputString = "";
-
-        // Use try to catch errors while reading the input file and adding it to a string
-        // Append a \n to the end of each line to help with line number counting.
-        try (BufferedReader br = new BufferedReader(new FileReader(inputFile))) {
-            while (br.ready())
-                inputString = inputString + br.readLine() + '\n';
-        }
-
-        // Return the string as an array of characters for easy parsing
-        return inputString.toCharArray();
     }
 
 }
