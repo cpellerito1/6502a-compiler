@@ -45,32 +45,6 @@ public class compiler {
     }
 
     /**
-     * This method reads the input file from standard input and adds it
-     * to a string that will be returned as an array of chars for easy parsing.
-     * A \n is added to the end of every line to make counting lines easy.
-     * @param input text file from command line
-     * @return char array containing the file
-     * @throws IOException
-     */
-    public static char[] readFile(String input) throws IOException {
-        // Read file from standard input
-        File inputFile = new File(input);
-
-        // Initialize String to read the file to.
-        String inputString = "";
-
-        // Use try to catch errors while reading the input file and adding it to a string
-        // Append a \n to the end of each line to help with line number counting.
-        try (BufferedReader br = new BufferedReader(new FileReader(inputFile))) {
-            while (br.ready())
-                inputString = inputString + br.readLine() + '\n';
-        }
-
-        // Return the string as an array of characters for easy parsing
-        return inputString.toCharArray();
-    }
-
-    /**
      * This method runs the lexical analysis of the compiler
      * @param inputFile ArrayList of char arrays that contain the file line by line
      */
@@ -250,6 +224,8 @@ public class compiler {
                     // printToken returns a boolean to tell if there are errors. If lexer has errors parser shouldnt run
                     boolean isErrors = Token.printToken(tokenStream);
                     if (!isErrors){
+                        // Remove the warnings from the tokenStream so parse doesn't have to deal with them
+                        tokenStream = trim(tokenStream);
                         // Insantiate parser
                         Parser p = new Parser(tokenStream);
                         p.parse();
@@ -388,6 +364,48 @@ public class compiler {
         }
 
         return tempToken;
+    }
+
+    /**
+     * This method removes the warnings from the tokenStream before being passed to parse. Only the warnings
+     * need to be removed because if there were any errors parse won't run.
+     * @param input tokenStream
+     * @return tokenStream with the warnings removed
+     */
+    public static List<Token> trim(List<Token> input) {
+        for (Token token : input)
+            if (token.type == Token.grammar.WARNING)
+                input.remove(token);
+
+        return input;
+    }
+
+
+
+    /**
+     * This method reads the input file from standard input and adds it
+     * to a string that will be returned as an array of chars for easy parsing.
+     * A \n is added to the end of every line to make counting lines easy.
+     * @param input text file from command line
+     * @return char array containing the file
+     * @throws IOException
+     */
+    public static char[] readFile(String input) throws IOException {
+        // Read file from standard input
+        File inputFile = new File(input);
+
+        // Initialize String to read the file to.
+        String inputString = "";
+
+        // Use try to catch errors while reading the input file and adding it to a string
+        // Append a \n to the end of each line to help with line number counting.
+        try (BufferedReader br = new BufferedReader(new FileReader(inputFile))) {
+            while (br.ready())
+                inputString = inputString + br.readLine() + '\n';
+        }
+
+        // Return the string as an array of characters for easy parsing
+        return inputString.toCharArray();
     }
 
 }

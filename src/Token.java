@@ -12,7 +12,6 @@ public class Token {
         TYPE, L_BRACE, R_BRACE, ID, CHAR, BOOL_VAL, ADD_OP, EQUAL_OP, ASSIGN_OP,
         IN_EQUAL_OP, ERROR, EOP, DIGIT, WARNING, SPACE, QUOTE, R_PARAN, L_PARAN,
         KEYWORD
-
     }
 
     public int lineNumber;
@@ -31,8 +30,9 @@ public class Token {
     }
 
     /**
-     * This method prints the token
+     * This method prints the tokenStream
      * @param input Token from tokenStream
+     * @return boolean value, true if no errors, false if errors
      */
     public static boolean printToken(List<Token> input){
         int errors = 0;
@@ -57,7 +57,7 @@ public class Token {
         // Add blank line after output
         System.out.println();
 
-        return warnings <= 0;
+        return errors <= 0;
 
     }
 
