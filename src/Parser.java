@@ -11,6 +11,8 @@ public class Parser {
 
     public static Token.grammar[] statements = {Token.grammar.KEYWORD,
             Token.grammar.TYPE, Token.grammar.ID, Token.grammar.L_BRACE};
+    public static Token.grammar[] expressions = {Token.grammar.DIGIT, Token.grammar.QUOTE,
+            Token.grammar.L_PARAN, Token.grammar.ID};
 
 
     public Parser(List<Token> tokenStream){
@@ -18,25 +20,29 @@ public class Parser {
     }
 
     public void parse(){
+        System.out.println("parse()");
         parseBlock();
         match(Token.grammar.EOP);
     }
 
-    public void parseBlock(){
+    private void parseBlock(){
+        System.out.println("parseBlock()");
         match(Token.grammar.L_BRACE);
         parseStateList();
         match(Token.grammar.R_BRACE);
     }
 
-    public void parseStateList(){
+    private void parseStateList(){
+        System.out.println("parseStateList()");
         if (contains(statements))
             parseState();
-        else
-            // Java doesn't like an empty else, so I put arbitrary code so it would stop throwing an error
-            current = current;
+        // Java doesn't like this
+        else {}
+
     }
 
-    public void parseState(){
+    private void parseState(){
+        System.out.println("parseState()");
         // add current token to a variable for easy access
         Token token = tokenStream.get(current);
         if (token.attribute.equals("print"))
@@ -45,37 +51,126 @@ public class Parser {
             parseWhile();
         else if (token.attribute.equals("if"))
             parseIf();
+        else if (token.type == Token.grammar.ID)
+            parseAssign();
+        else if (token.type == Token.grammar.TYPE)
+            parseVar();
+        else
+            parseBlock();
 
+    }
+
+    private void parseVar(){
+        System.out.println("parseVar()");
+        match(Token.grammar.TYPE);
+        match(Token.grammar.ID);
+    }
+
+    private void parseAssign(){
+        System.out.println("parseAssign()");
+        match(Token.grammar.ID);
+        match(Token.grammar.ASSIGN_OP);
+        parseExprs();
     }
 
     private void parsePrint(){
-        match(Token.grammar.L_PARAN);
+        System.out.println("parsePrint()");
         matchString("print");
+        match(Token.grammar.L_PARAN);
+        if (contains(expressions)){
+            parseExprs();
+        }
         match(Token.grammar.R_PARAN);
     }
 
-    public void parseWhile(){
+    private void parseExprs() {
+        System.out.println("parseExprs()");
+        // add current token to a variable for easy access
+        Token token = tokenStream.get(current);
+        if (token.type == Token.grammar.DIGIT)
+            parseIntExpr();
+        else if(token.type == Token.grammar.QUOTE)
+            parseStringExpr();
+        else if (token.type == Token.grammar.L_PARAN)
+            parseBoolExpr();
+        else
+            match(Token.grammar.ID);
+    }
+
+    private void parseBoolExpr() {
+        System.out.println("parseBoolExpr()");
+        if (tokenStream.get(current).type == Token.grammar.BOOL_VAL)
+            match(Token.grammar.BOOL_VAL);
+        else {
+            match(Token.grammar.L_PARAN);
+            parseExprs();
+        }
+    }
+
+    private void parseStringExpr() {
+        System.out.println("parseStringExpr()");
+        match(Token.grammar.QUOTE);
+        parseCharList();
+        match(Token.grammar.QUOTE);
+    }
+
+    private void parseCharList() {
+        System.out.println("parseCharList()");
+        // Add current token to a variable for easier access
+        Token token = tokenStream.get(current);
+        if (token.type == Token.grammar.CHAR){
+            match(Token.grammar.CHAR);
+            parseCharList();
+        } else if (token.type == Token.grammar.SPACE){
+            match(Token.grammar.SPACE);
+            parseCharList();
+        } else {} // Java doesn't like this
+    }
+
+    private void parseIntExpr() {
+        match(Token.grammar.DIGIT);
+        if (tokenStream.get(current).type == Token.grammar.ADD_OP){
+            match(Token.grammar.ADD_OP);
+            parseExprs();
+        }
+        // Java doesn't like this
+        else {}
+    }
+
+    private void parseWhile(){
+        System.out.println("parseWhile()");
         matchString("while");
+        parseBoolExpr();
+        parseBlock();
 
     }
 
-    public void match(Token.grammar expected){
+    private void parseIf(){
+        System.out.println("parseIf()");
+        matchString("if");
+        parseBoolExpr();
+        parseBlock();
+    }
+
+    private void match(Token.grammar expected){
         if (tokenStream.get(current).type == expected){
             // Consume token
             current++;
         } else
-            System.out.println("error: ");
+            System.out.println("ERROR: expected " + expected.toString() +
+                    " got " + tokenStream.get(current).type.toString());
     }
 
-    public void matchString(String expected){
+    private void matchString(String expected){
         if (tokenStream.get(current).attribute.equals(expected)) {
             // Consume token
             current++;
         } else
-            System.out.println("error: ");
+            System.out.println("ERROR: expected " + expected +
+                    " got " + tokenStream.get(current).attribute);
     }
 
-    public boolean contains(Token.grammar[] input){
+    private boolean contains(Token.grammar[] input){
         for (Token.grammar type: input)
             if (type == tokenStream.get(current).type)
                 return true;

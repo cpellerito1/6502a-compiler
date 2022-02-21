@@ -36,8 +36,8 @@ public class compiler {
      */
     public static void main(String[] args) throws Exception {
         // Use readFile method to read file from standard input into a char array
-        char[] inputFile = readFile(args[0]);
-        //char[] inputFile = readFile("C:\\Users\\cpell\\Documents\\compiler\\src\\test.txt");
+        //char[] inputFile = readFile(args[0]);
+        char[] inputFile = readFile("C:\\Users\\cpell\\Documents\\compiler\\src\\test.txt");
 
         System.out.println("LEXER");
         lexer(inputFile);
@@ -280,9 +280,11 @@ public class compiler {
 
                         current++;
                         prev = current;
+
                     // If it's not a boundry then increment and move on
-                    } else
+                    } else {
                         current++;
+                    }
 
                 } catch (Exception e) {
                     tokenStream.add(new Token(line, prev, inputString, Token.grammar.ID));
@@ -352,8 +354,14 @@ public class compiler {
                 tempToken.add(new Token(line, current, inputString, Token.grammar.SPACE));
 
             else if (input[i] == '\n') {
+                tempToken.add(new Token(line, current,
+                        "string can't have new line character", Token.grammar.ERROR));
                 current++;
                 line++;
+            } else if (input[i] == '$') {
+                tempToken.add(new Token(line, current, "possible unclosed string", Token.grammar.WARNING));
+                tempToken.add(new Token(line, current,
+                        "unexpected character $ in string", Token.grammar.ERROR));
             }
             else
                 tempToken.add(new Token(line, current,
@@ -364,6 +372,20 @@ public class compiler {
         }
 
         return tempToken;
+    }
+
+    /**
+     * This method checks if a single character is follwoed by a keyword. This helps seperate variable declarations
+     * from the start of the next statement when no white spaces are used.
+     * @param input inputfile
+     * @return boolean value of whether or not a keyword exists in the string following the character
+     */
+    public static boolean checkKeyword(char[] input){
+        int count = current + 1;
+        while (!keyword.matcher(String.copyValueOf(input, current + 1, current - count)).find()){
+            count++;
+        }
+        return true;
     }
 
     /**
