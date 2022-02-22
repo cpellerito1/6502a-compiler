@@ -228,8 +228,11 @@ public class compiler {
                         tokenStream = trim(tokenStream);
                         // Insantiate parser
                         Parser p = new Parser(tokenStream);
+                        System.out.println("Beginning Parse for program " + counter);
                         p.parse();
                     }
+                    else
+                        System.out.println("Skipping Parse due to Lex errors");
 
                     // Empty the tokenStream for the next program
                     tokenStream.clear();
@@ -401,8 +404,6 @@ public class compiler {
 
         return input;
     }
-
-
 
     /**
      * This method reads the input file from standard input and adds it

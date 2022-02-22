@@ -20,6 +20,8 @@ public class Parser {
     }
 
     public void parse(){
+        // Reset current to 0
+        current = 0;
         System.out.println("parse()");
         parseBlock();
         match(Token.grammar.EOP);
@@ -34,10 +36,8 @@ public class Parser {
 
     private void parseStateList(){
         System.out.println("parseStateList()");
-        if (contains(statements))
+        while (contains(statements))
             parseState();
-        // Java doesn't like this
-        else {}
 
     }
 
@@ -64,6 +64,8 @@ public class Parser {
         System.out.println("parseVar()");
         match(Token.grammar.TYPE);
         match(Token.grammar.ID);
+        //if (tokenStream.get(current).type == Token.grammar.ASSIGN_OP)
+          //  parseAssign();
     }
 
     private void parseAssign(){
@@ -93,6 +95,8 @@ public class Parser {
             parseStringExpr();
         else if (token.type == Token.grammar.L_PARAN)
             parseBoolExpr();
+        else if (token.type == Token.grammar.BOOL_VAL)
+            parseBoolExpr();
         else
             match(Token.grammar.ID);
     }
@@ -104,6 +108,12 @@ public class Parser {
         else {
             match(Token.grammar.L_PARAN);
             parseExprs();
+            if (tokenStream.get(current).type == Token.grammar.EQUAL_OP)
+                match(Token.grammar.EQUAL_OP);
+            else
+                match(Token.grammar.IN_EQUAL_OP);
+            parseExprs();
+            match(Token.grammar.R_PARAN);
         }
     }
 

@@ -35,6 +35,9 @@ public class Token {
      * @return boolean value, true if no errors, false if errors
      */
     public static boolean printToken(List<Token> input){
+        // Add blank line at start of output
+        System.out.println();
+
         int errors = 0;
         int warnings = 0;
 
@@ -57,7 +60,7 @@ public class Token {
         // Add blank line after output
         System.out.println();
 
-        return errors <= 0;
+        return errors > 0;
 
     }
 
