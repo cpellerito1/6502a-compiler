@@ -54,14 +54,14 @@ public class Parser {
         else if (token.type == Token.grammar.ID)
             parseAssign();
         else if (token.type == Token.grammar.TYPE)
-            parseVar();
+            parseVarDec();
         else
             parseBlock();
 
     }
 
-    private void parseVar(){
-        System.out.println("parseVar()");
+    private void parseVarDec(){
+        System.out.println("parseVarDec()");
         match(Token.grammar.TYPE);
         match(Token.grammar.ID);
         //if (tokenStream.get(current).type == Token.grammar.ASSIGN_OP)

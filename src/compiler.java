@@ -12,6 +12,7 @@ import java.util.regex.*;
 public class compiler {
     // Regular expression definitions
     public static Pattern type = Pattern.compile("int|string|boolean");
+    public static Pattern typeExact = Pattern.compile("^int$|^string$|^boolean$");
     public static Pattern character = Pattern.compile("[a-z]");
     public static Pattern bool = Pattern.compile("true|false");
     public static Pattern digit = Pattern.compile("[0|1|2|3|4|5|6|7|8|9]");
@@ -256,9 +257,20 @@ public class compiler {
 
             // int, string, and boolean matcher
             if (type.matcher(inputString).find()) {
-                tokenStream.add(new Token(line, prev, inputString, Token.grammar.TYPE));
-                current++;
-                prev = current;
+                if (typeExact.matcher(inputString).find()) {
+                    tokenStream.add(new Token(line, prev, inputString, Token.grammar.TYPE));
+                    current++;
+                    prev = current;
+                }
+                else {
+                    // If it isn't an exact match take the first character must be an ID
+                    tokenStream.add(new Token(line, prev, String.valueOf(inputString.charAt(0)), Token.grammar.ID));
+                    // Add the type token to the tokenStream
+                    tokenStream.add(new Token(line, prev, String.copyValueOf(inputFile,
+                            prev + 1, current - prev), Token.grammar.TYPE));
+                    current++;
+                    prev = current;
+                }
 
              // Boolean value matcher (true or false)
             } else if (bool.matcher(inputString).find()) {
