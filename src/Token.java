@@ -29,39 +29,4 @@ public class Token {
         this.type = type;
     }
 
-    /**
-     * This method prints the tokenStream
-     * @param input Token from tokenStream
-     * @return boolean value, true if no errors, false if errors
-     */
-    public static boolean printToken(List<Token> input){
-        // Add blank line at start of output
-        System.out.println();
-
-        int errors = 0;
-        int warnings = 0;
-
-        for (Token token : input) {
-            if (token.type == grammar.ERROR) {
-                errors++;
-                System.out.println("Error: " + token.attribute + " at " + token.lineNumber + ":" +token.linePosition);
-            } else if (token.type == grammar.WARNING){
-                warnings++;
-                System.out.println("Warning: " + token.attribute + " at " + token.lineNumber + ":" +token.linePosition);
-            }
-            else
-                System.out.println("VERBOSE Lexer - " + token.type + " [ " + token.attribute + " ] found at (" +
-                    token.lineNumber + ":" + token.linePosition + ")");
-        }
-
-        System.out.println("Program " + compiler.counter + " finished with " + errors +
-                " error(s) and " + warnings + " warning(s)");
-
-        // Add blank line after output
-        System.out.println();
-
-        return errors > 0;
-
-    }
-
 }
