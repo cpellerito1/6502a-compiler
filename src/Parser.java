@@ -9,6 +9,7 @@ public class Parser {
     // pointer for accessing tokenStream
     public static int current = 0;
 
+    // Arrays of ENUM types to help with the parse
     public static Token.grammar[] statements = {Token.grammar.KEYWORD,
             Token.grammar.TYPE, Token.grammar.ID, Token.grammar.L_BRACE};
     public static Token.grammar[] expressions = {Token.grammar.DIGIT, Token.grammar.QUOTE,
@@ -19,6 +20,7 @@ public class Parser {
         this.tokenStream = tokenStream;
     }
 
+    // Main parse method
     public void parse(){
         // Reset current to 0
         current = 0;
@@ -27,6 +29,7 @@ public class Parser {
         match(Token.grammar.EOP);
     }
 
+    // Parse block
     private void parseBlock(){
         System.out.println("parseBlock()");
         match(Token.grammar.L_BRACE);
@@ -34,13 +37,14 @@ public class Parser {
         match(Token.grammar.R_BRACE);
     }
 
+    // Parse statementlist
     private void parseStateList(){
         System.out.println("parseStateList()");
         while (contains(statements))
             parseState();
-
     }
 
+    // Parse statement
     private void parseState(){
         System.out.println("parseState()");
         // add current token to a variable for easy access
@@ -57,17 +61,16 @@ public class Parser {
             parseVarDec();
         else
             parseBlock();
-
     }
 
+    // Parse variable declaration
     private void parseVarDec(){
         System.out.println("parseVarDec()");
         match(Token.grammar.TYPE);
         match(Token.grammar.ID);
-        //if (tokenStream.get(current).type == Token.grammar.ASSIGN_OP)
-          //  parseAssign();
     }
 
+    // Parse assignment statement
     private void parseAssign(){
         System.out.println("parseAssign()");
         match(Token.grammar.ID);
@@ -75,16 +78,18 @@ public class Parser {
         parseExprs();
     }
 
+    // Parse print statement
     private void parsePrint(){
         System.out.println("parsePrint()");
         matchString("print");
         match(Token.grammar.L_PARAN);
-        if (contains(expressions)){
+        if (contains(expressions))
             parseExprs();
-        }
+
         match(Token.grammar.R_PARAN);
     }
 
+    // Parse expression
     private void parseExprs() {
         System.out.println("parseExprs()");
         // add current token to a variable for easy access
@@ -101,6 +106,7 @@ public class Parser {
             match(Token.grammar.ID);
     }
 
+    // Parse boolean expression
     private void parseBoolExpr() {
         System.out.println("parseBoolExpr()");
         if (tokenStream.get(current).type == Token.grammar.BOOL_VAL)
@@ -117,6 +123,7 @@ public class Parser {
         }
     }
 
+    // Parse string expression
     private void parseStringExpr() {
         System.out.println("parseStringExpr()");
         match(Token.grammar.QUOTE);
@@ -124,6 +131,7 @@ public class Parser {
         match(Token.grammar.QUOTE);
     }
 
+    // Parse character list
     private void parseCharList() {
         System.out.println("parseCharList()");
         // Add current token to a variable for easier access
@@ -137,24 +145,25 @@ public class Parser {
         } else {} // Java doesn't like this
     }
 
+    // Parse int expression
     private void parseIntExpr() {
         match(Token.grammar.DIGIT);
         if (tokenStream.get(current).type == Token.grammar.ADD_OP){
             match(Token.grammar.ADD_OP);
             parseExprs();
         }
-        // Java doesn't like this
-        else {}
+        else {} // Java doesn't like this
     }
 
+    // Parse while statement
     private void parseWhile(){
         System.out.println("parseWhile()");
         matchString("while");
         parseBoolExpr();
         parseBlock();
-
     }
 
+    // Parse if statement
     private void parseIf(){
         System.out.println("parseIf()");
         matchString("if");
@@ -162,24 +171,45 @@ public class Parser {
         parseBlock();
     }
 
+    /**
+     * Method to match the terminal tokens using the ENUM type from the Token class
+     * @param expected Expected Token type
+     */
     private void match(Token.grammar expected){
-        if (tokenStream.get(current).type == expected){
+        // Assign current token to variable for easier access
+        Token token = tokenStream.get(current);
+        if (token.type == expected){
             // Consume token
             current++;
         } else
-            System.out.println("ERROR: expected " + expected.toString() +
-                    " got " + tokenStream.get(current).type.toString());
+            System.out.println("ERROR: expected " + expected.toString() + " got " + token.type.toString() +
+                    " on line " + token.lineNumber + " at " + token.linePosition);
     }
 
+    /**
+     * This method is the same as the regular match method but uses a different input. This is needed
+     * because of the way I handled keywords in Lex. Instead of making a KEYWORD_PRINT ENUM and creating
+     * a regex for each keyword, I used just one regex and made the ENUM just KEYWORD.
+     * @param expected String representation of the expected Token
+     */
     private void matchString(String expected){
-        if (tokenStream.get(current).attribute.equals(expected)) {
+        // Assign current token to variable for easier access
+        Token token = tokenStream.get(current);
+
+        if (token.attribute.equals(expected)) {
             // Consume token
             current++;
         } else
-            System.out.println("ERROR: expected " + expected +
-                    " got " + tokenStream.get(current).attribute);
+            System.out.println("ERROR: expected " + expected + " got " + token.attribute +
+                    " on line " + token.lineNumber + " at " + token.linePosition);
     }
 
+    /**
+     * This is a helper method to determine if the current token is in a set. This helps deal with the epsilon
+     * production in statementlist
+     * @param input Array of Token.grammar ENUMS
+     * @return boolean value whether the current token is in the provided array
+     */
     private boolean contains(Token.grammar[] input){
         for (Token.grammar type: input)
             if (type == tokenStream.get(current).type)

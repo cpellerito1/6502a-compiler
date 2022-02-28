@@ -312,7 +312,7 @@ public class Lexer {
                 // Remove the warnings from the tokenStream so parse doesn't have to deal with them
                 trim(tokenStream);
 
-                // Insantiate parser
+                // Instantiate parser
                 Parser p = new Parser(tokenStream);
                 System.out.println("Beginning Parse for program " + counter);
                 p.parse();
@@ -388,6 +388,7 @@ public class Lexer {
     public static boolean printToken(List<Token> input){
         // Add blank line at start of output
         System.out.println();
+        System.out.println("Beginning Lex for program " + counter);
 
         int errors = 0;
         int warnings = 0;

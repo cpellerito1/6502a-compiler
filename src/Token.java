@@ -1,5 +1,3 @@
-import java.util.List;
-
 /**
  * This class is for the tokens of lexer. It will store their attribute, line number,
  * and any other needed information
