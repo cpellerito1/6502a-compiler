@@ -1,6 +1,8 @@
+import java.util.List;
+
 /**
  * This class if for the concrete syntax tree part of the parser.
- * This code is adapted from code found here:
+ * This code is adapted from code found here: https://www.labouseur.com/projects/jsTreeDemo/treeDemo.js
  *
  * @author Chris Pellerito
  */
@@ -11,16 +13,33 @@ public class Tree {
      Node root = null;
      Node current;
 
-     public static void addNode(String name, kind kind){
-         Node node = new Node(name, kind);
+     static List<Node> cst;
+
+     public void addNode(String name, kind kind){
+         cst.add(new Node(name, kind));
+
+         if (this.root == null || this.root != getLast())
+             this.root = getLast();
+         else {
+             getLast().parent = this.current;
+             this.current.children.add(getLast());
+         }
+
      }
 
 
+    /**
+     * This is a convenience method
+     * @return last node in CST
+     */
+     static Node getLast(){ return cst.get(cst.size()-1); }
 
-
+    /**
+     * Node class
+     */
     static class Node {
         String name;
-        Node[] children;
+        List<Node> children;
         Node parent;
         Tree.kind kind;
 

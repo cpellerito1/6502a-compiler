@@ -337,7 +337,7 @@ public class Lexer {
     }
 
     /**
-     * This method is a convience method. It is used to lex the contents of a string.
+     * This method is a convenience method. It is used to lex the contents of a string.
      * Makes the code cleaner and easier to read so the Lexer method doesn't need to worry about
      * checking if every char it finds is a part of a string.
      * @param input char array of all characters in between the quotes

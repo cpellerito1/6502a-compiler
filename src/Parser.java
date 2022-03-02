@@ -40,7 +40,7 @@ public class Parser {
     // Parse statementlist
     private void parseStateList(){
         System.out.println("parseStateList()");
-        while (contains(statements))
+        while (tokenStream.get(current).contains(statements))
             parseState();
     }
 
@@ -83,7 +83,7 @@ public class Parser {
         System.out.println("parsePrint()");
         matchString("print");
         match(Token.grammar.L_PARAN);
-        if (contains(expressions))
+        if (tokenStream.get(current).contains(expressions))
             parseExprs();
 
         match(Token.grammar.R_PARAN);
@@ -189,7 +189,8 @@ public class Parser {
     /**
      * This method is the same as the regular match method but uses a different input. This is needed
      * because of the way I handled keywords in Lex. Instead of making a KEYWORD_PRINT ENUM and creating
-     * a regex for each keyword, I used just one regex and made the ENUM just KEYWORD.
+     * a regex for each keyword, I used just one regex and made the ENUM just KEYWORD and then stored the
+     * type of keyword in the attribute field.
      * @param expected String representation of the expected Token
      */
     private void matchString(String expected){
@@ -202,19 +203,5 @@ public class Parser {
         } else
             System.out.println("ERROR: expected " + expected + " got " + token.attribute +
                     " on line " + token.lineNumber + " at " + token.linePosition);
-    }
-
-    /**
-     * This is a helper method to determine if the current token is in a set. This helps deal with the epsilon
-     * production in statementlist
-     * @param input Array of Token.grammar ENUMS
-     * @return boolean value whether the current token is in the provided array
-     */
-    private boolean contains(Token.grammar[] input){
-        for (Token.grammar type: input)
-            if (type == tokenStream.get(current).type)
-                return true;
-
-        return false;
     }
 }

@@ -27,4 +27,18 @@ public class Token {
         this.type = type;
     }
 
+    /**
+     * This is a helper method to determine if the current token is in a set. This helps deal with the epsilon
+     * production in statementlist
+     * @param input Array of Token.grammar ENUMS
+     * @return boolean value whether the current token is in the provided array
+     */
+    public boolean contains(Token.grammar[] input){
+        for (Token.grammar type: input)
+            if (type == this.type)
+                return true;
+
+        return false;
+    }
+
 }
