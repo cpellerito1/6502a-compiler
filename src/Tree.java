@@ -25,6 +25,9 @@ public class Tree {
              this.current.children.add(getLast());
          }
 
+         if (kind == Tree.kind.BRANCH)
+             this.current = getLast();
+
      }
 
 
