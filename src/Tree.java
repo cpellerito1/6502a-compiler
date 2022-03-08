@@ -30,6 +30,36 @@ public class Tree {
 
      }
 
+     public void moveUp(){
+         if (this.current.parent != null && this.current.parent.name != null)
+             this.current = this.current.parent;
+         else {
+             // Error Logging
+         }
+
+     }
+
+     public String toString(){
+         String traversalResult = "";
+         traversalResult = expand(this.root, 0, traversalResult);
+         return traversalResult;
+     }
+
+     public static String expand(Node node, int depth, String traversal){
+         traversal = traversal + "-".repeat(Math.max(0, depth));
+
+         if (node.children == null || node.children.size() == 0)
+             traversal += "[" + node.name + "] \n";
+         else {
+             traversal += "<" + node.name + "> \n";
+
+             for (int i = 0; i < node.children.size(); i++)
+                 expand(node.children.get(i), depth + 1, traversal);
+         }
+
+         return traversal;
+     }
+
 
     /**
      * This is a convenience method
