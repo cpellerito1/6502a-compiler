@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,17 +17,19 @@ public class Tree {
      static List<Node> cst;
 
      public void addNode(String name, kind kind){
-         cst.add(new Node(name, kind));
+        Node n = new Node(name, kind);
 
-         if (this.root == null || this.root != getLast())
-             this.root = getLast();
+         if (kind == Tree.kind.ROOT || this.root == null) {
+             this.root = n;
+             this.current = n;
+         }
          else {
-             getLast().parent = this.current;
-             this.current.children.add(getLast());
+             n.parent = this.current;
+             this.current.children.add(n);
          }
 
          if (kind == Tree.kind.BRANCH)
-             this.current = getLast();
+             this.current = n;
 
      }
 
@@ -65,14 +68,14 @@ public class Tree {
      * This is a convenience method
      * @return last node in CST
      */
-     static Node getLast(){ return cst.get(cst.size()-1); }
+    // static Node getLast(){ return cst.get(cst.size()-1); }
 
     /**
      * Node class
      */
     static class Node {
         String name;
-        List<Node> children;
+        List<Node> children = new ArrayList<>();
         Node parent;
         Tree.kind kind;
 

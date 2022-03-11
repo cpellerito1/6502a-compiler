@@ -15,6 +15,8 @@ public class Parser {
     public static Token.grammar[] expressions = {Token.grammar.DIGIT, Token.grammar.QUOTE,
             Token.grammar.L_PARAN, Token.grammar.ID};
 
+    // Instantiate CST
+    Tree cst = new Tree();
 
     public Parser(List<Token> tokenStream){
         this.tokenStream = tokenStream;
@@ -22,30 +24,39 @@ public class Parser {
 
     // Main parse method
     public void parse(){
+        cst.addNode("Program", Tree.kind.ROOT);
         // Reset current to 0
         current = 0;
         System.out.println("parse()");
         parseBlock();
         match(Token.grammar.EOP);
+        System.out.println("CST");
+        System.out.println(cst.toString());
+        cst.moveUp();
     }
 
     // Parse block
     private void parseBlock(){
+        cst.addNode("Block", Tree.kind.BRANCH);
         System.out.println("parseBlock()");
         match(Token.grammar.L_BRACE);
         parseStateList();
         match(Token.grammar.R_BRACE);
+        cst.moveUp();
     }
 
     // Parse statementlist
     private void parseStateList(){
+        cst.addNode("Statement List", Tree.kind.BRANCH);
         System.out.println("parseStateList()");
         while (tokenStream.get(current).contains(statements))
             parseState();
+        cst.moveUp();
     }
 
     // Parse statement
     private void parseState(){
+        cst.addNode("Statement", Tree.kind.BRANCH);
         System.out.println("parseState()");
         // add current token to a variable for easy access
         Token token = tokenStream.get(current);
@@ -61,25 +72,31 @@ public class Parser {
             parseVarDec();
         else
             parseBlock();
+        cst.moveUp();
     }
 
     // Parse variable declaration
     private void parseVarDec(){
+        cst.addNode("Variable Declaration", Tree.kind.BRANCH);
         System.out.println("parseVarDec()");
         match(Token.grammar.TYPE);
         match(Token.grammar.ID);
+        cst.moveUp();
     }
 
     // Parse assignment statement
     private void parseAssign(){
+        cst.addNode("Assignment Statement", Tree.kind.BRANCH);
         System.out.println("parseAssign()");
         match(Token.grammar.ID);
         match(Token.grammar.ASSIGN_OP);
         parseExprs();
+        cst.moveUp();
     }
 
     // Parse print statement
     private void parsePrint(){
+        cst.addNode("Print Statement", Tree.kind.BRANCH);
         System.out.println("parsePrint()");
         matchString("print");
         match(Token.grammar.L_PARAN);
@@ -87,10 +104,12 @@ public class Parser {
             parseExprs();
 
         match(Token.grammar.R_PARAN);
+        cst.moveUp();
     }
 
     // Parse expression
     private void parseExprs() {
+        cst.addNode("Expression", Tree.kind.BRANCH);
         System.out.println("parseExprs()");
         // add current token to a variable for easy access
         Token token = tokenStream.get(current);
@@ -104,10 +123,12 @@ public class Parser {
             parseBoolExpr();
         else
             match(Token.grammar.ID);
+        cst.moveUp();
     }
 
     // Parse boolean expression
     private void parseBoolExpr() {
+        cst.addNode("Boolean Expression", Tree.kind.BRANCH);
         System.out.println("parseBoolExpr()");
         if (tokenStream.get(current).type == Token.grammar.BOOL_VAL)
             match(Token.grammar.BOOL_VAL);
@@ -121,18 +142,22 @@ public class Parser {
             parseExprs();
             match(Token.grammar.R_PARAN);
         }
+        cst.moveUp();
     }
 
     // Parse string expression
     private void parseStringExpr() {
+        cst.addNode("String Expression", Tree.kind.BRANCH);
         System.out.println("parseStringExpr()");
         match(Token.grammar.QUOTE);
         parseCharList();
         match(Token.grammar.QUOTE);
+        cst.moveUp();
     }
 
     // Parse character list
     private void parseCharList() {
+        cst.addNode("Character List", Tree.kind.BRANCH);
         System.out.println("parseCharList()");
         // Add current token to a variable for easier access
         Token token = tokenStream.get(current);
@@ -143,32 +168,39 @@ public class Parser {
             match(Token.grammar.SPACE);
             parseCharList();
         } else {} // Java doesn't like this
+        cst.moveUp();
     }
 
     // Parse int expression
     private void parseIntExpr() {
+        cst.addNode("Integer Expression", Tree.kind.BRANCH);
         match(Token.grammar.DIGIT);
         if (tokenStream.get(current).type == Token.grammar.ADD_OP){
             match(Token.grammar.ADD_OP);
             parseExprs();
         }
         else {} // Java doesn't like this
+        cst.moveUp();
     }
 
     // Parse while statement
     private void parseWhile(){
+        cst.addNode("While Statement", Tree.kind.BRANCH);
         System.out.println("parseWhile()");
         matchString("while");
         parseBoolExpr();
         parseBlock();
+        cst.moveUp();
     }
 
     // Parse if statement
     private void parseIf(){
+        cst.addNode("If Statement", Tree.kind.BRANCH);
         System.out.println("parseIf()");
         matchString("if");
         parseBoolExpr();
         parseBlock();
+        cst.moveUp();
     }
 
     /**
@@ -180,6 +212,7 @@ public class Parser {
         Token token = tokenStream.get(current);
         if (token.type == expected){
             // Consume token
+            cst.addNode(token.attribute, Tree.kind.LEAF);
             current++;
         } else
             System.out.println("ERROR: expected " + expected.toString() + " got " + token.type.toString() +
@@ -199,6 +232,7 @@ public class Parser {
 
         if (token.attribute.equals(expected)) {
             // Consume token
+            cst.addNode(token.attribute, Tree.kind.LEAF);
             current++;
         } else
             System.out.println("ERROR: expected " + expected + " got " + token.attribute +
