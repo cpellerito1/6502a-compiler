@@ -4,10 +4,15 @@ import java.util.List;
  * This class contains the recursive decent parser for the compiler
  */
 public class Parser {
+    // List for tokenStream from Lexer
     public List<Token> tokenStream;
 
     // pointer for accessing tokenStream
     public static int current = 0;
+
+    // Variable to hold the state of errors, since the CST shouldn't be printed if there are parse errors,
+    // and it doesn't matter if there are more than 1 errors, just that they exist
+    static boolean isErrors;
 
     // Arrays of ENUM types to help with the parse
     public static Token.grammar[] statements = {Token.grammar.KEYWORD,
@@ -30,8 +35,11 @@ public class Parser {
         System.out.println("parse()");
         parseBlock();
         match(Token.grammar.EOP);
-        System.out.println("CST");
-        System.out.println(cst.toString());
+        if (!isErrors) {
+            System.out.println("CST");
+            System.out.println(cst.toString());
+        } else
+            System.out.println("CST not printing due to Parse error(s)");
         cst.moveUp();
     }
 
@@ -167,7 +175,7 @@ public class Parser {
         } else if (token.type == Token.grammar.SPACE){
             match(Token.grammar.SPACE);
             parseCharList();
-        } else {} // Java doesn't like this
+        } else { } // Java doesn't like this
         cst.moveUp();
     }
 
@@ -179,7 +187,7 @@ public class Parser {
             match(Token.grammar.ADD_OP);
             parseExprs();
         }
-        else {} // Java doesn't like this
+        else { } // Java doesn't like this
         cst.moveUp();
     }
 
@@ -214,9 +222,11 @@ public class Parser {
             // Consume token
             cst.addNode(token.attribute, Tree.kind.LEAF);
             current++;
-        } else
+        } else {
             System.out.println("ERROR: expected " + expected.toString() + " got " + token.type.toString() +
                     " on line " + token.lineNumber + " at " + token.linePosition);
+            isErrors = true;
+        }
     }
 
     /**
@@ -234,8 +244,10 @@ public class Parser {
             // Consume token
             cst.addNode(token.attribute, Tree.kind.LEAF);
             current++;
-        } else
+        } else {
             System.out.println("ERROR: expected " + expected + " got " + token.attribute +
                     " on line " + token.lineNumber + " at " + token.linePosition);
+            isErrors = true;
+        }
     }
 }

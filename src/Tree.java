@@ -70,7 +70,7 @@ public class Tree {
      * @param node The node to be added to the CST
      * @param depth The depth of the node
      * @param traversal The String representation of the CST
-     * @return The String representtion of the CST
+     * @return The String representation of the CST
      */
      public static String expand(Node node, int depth, String traversal){
          // Add - to the end of traversal, which will be the start of a newline
