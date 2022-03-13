@@ -29,17 +29,26 @@ public class Parser {
 
     // Main parse method
     public void parse(){
-        cst.addNode("Program", Tree.kind.ROOT);
-        // Reset current to 0
+        // Reset counter and errors
         current = 0;
+        isErrors = false;
+
+        // Add the root node
+        cst.addNode("Program", Tree.kind.ROOT);
+
         System.out.println("parse()");
         parseBlock();
         match(Token.grammar.EOP);
         if (!isErrors) {
+            // Empty print for spacing
+            System.out.println();
             System.out.println("CST");
             System.out.println(cst.toString());
-        } else
+        } else {
+            // Empty print for spacing
+            System.out.println();
             System.out.println("CST not printing due to Parse error(s)");
+        }
         cst.moveUp();
     }
 

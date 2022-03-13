@@ -77,7 +77,7 @@ public class Tree {
          traversal = traversal + "-".repeat(depth);
 
          // If the node has no children it must be a leaf node
-         if (node.children == null || node.children.size() == 0)
+         if (node.kind == kind.LEAF)
              traversal += "[" + node.name + "] \n";
          // Otherwise, it is a branch or root node
          else {
