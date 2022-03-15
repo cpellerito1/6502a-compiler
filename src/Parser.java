@@ -2,13 +2,15 @@ import java.util.List;
 
 /**
  * This class contains the recursive decent parser for the compiler
+ *
+ * @author Chris Pellerito
  */
 public class Parser {
     // List for tokenStream from Lexer
     public List<Token> tokenStream;
 
     // pointer for accessing tokenStream
-    public static int current = 0;
+    public static int current;
 
     // Variable to hold the state of errors, since the CST shouldn't be printed if there are parse errors,
     // and it doesn't matter if there are more than 1 errors, just that they exist
@@ -40,15 +42,11 @@ public class Parser {
         parseBlock();
         match(Token.grammar.EOP);
         if (!isErrors) {
-            // Empty print for spacing
-            System.out.println();
-            System.out.println("CST");
+            System.out.printf("%n%s%n", "CST");
             System.out.println(cst.toString());
-        } else {
-            // Empty print for spacing
-            System.out.println();
-            System.out.println("CST not printing due to Parse error(s)");
-        }
+        } else
+            System.out.printf("%n%s%n", "CST not printing due to Parse error(s)");
+
         cst.moveUp();
     }
 
@@ -66,8 +64,10 @@ public class Parser {
     private void parseStateList(){
         cst.addNode("Statement List", Tree.kind.BRANCH);
         System.out.println("parseStateList()");
-        while (tokenStream.get(current).contains(statements))
+        if (tokenStream.get(current).contains(statements)) {
             parseState();
+            parseStateList();
+        } else { } // Java doesn't like this
         cst.moveUp();
     }
 
