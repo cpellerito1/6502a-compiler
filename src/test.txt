@@ -1,3 +1,7 @@
+{boolean a a = true}$
+{intfintif=2}$
+{print("two
+lines")}$
 /*Long Test Case - Everything Except Boolean Declaration */
 {
 /* Int Declaration */
@@ -27,5 +31,7 @@ while (a != 3) {
 {inta=1intb=a}$
 /* Alex Badia test case */
 {{{}+{}{=!{}{!=[}}{=)()*}{+#&*#@}{!@&*#@}+!}$
+{print("test")}$
+{{{/*uneven braces*/}}$
 
 {print("this should throw 2 warnings and an error
