@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -12,8 +11,9 @@ public class Lexer {
     public static Pattern typeExact = Pattern.compile("^int$|^string$|^boolean$");
     public static Pattern character = Pattern.compile("[a-z]");
     public static Pattern bool = Pattern.compile("true|false");
-    public static Pattern digit = Pattern.compile("[0|1|2|3|4|5|6|7|8|9]");
+    public static Pattern digit = Pattern.compile("[0-9]");
     public static Pattern keyword = Pattern.compile("while|if|print");
+    public static Pattern keywordExact = Pattern.compile("^while$|^if$|^print$");
     public static Pattern all = Pattern.compile("[a-z|0-9]");
 
     // Make these global to allow for accurate position tracking across multiple methods
@@ -33,7 +33,7 @@ public class Lexer {
      */
     public static void lexer(char[] inputFile){
         // Create a List to add tokens to when found
-        List<Token> tokenStream = new ArrayList<Token>();
+        ArrayList<Token> tokenStream = new ArrayList<>();
 
         // Input string for easy regex matching
         String inputString = "";
@@ -239,26 +239,33 @@ public class Lexer {
 
             // Keyword matcher (print, while, if)
             if (keyword.matcher(inputString).find()) {
+                while (!keywordExact.matcher(inputString).find()){
+                    // If it isn't an exact match, the first character must be an ID
+                    tokenStream.add(new Token(line, prev, String.valueOf(inputString.charAt(0)), Token.grammar.ID));
+                    // remove the first character from the string
+                    inputString = inputString.substring(1);
+                    prev++;
+                }
+
+                // Add the keyword token
                 tokenStream.add(new Token(line, prev, inputString, Token.grammar.KEYWORD));
                 current++;
                 prev = current;
 
-                // int, string, and boolean matcher
+            // int, string, and boolean matcher
             } else if (type.matcher(inputString).find()) {
-                if (typeExact.matcher(inputString).find()) {
-                    tokenStream.add(new Token(line, prev, inputString, Token.grammar.TYPE));
-                    current++;
-                    prev = current;
-                }
-                else {
-                    // If it isn't an exact match take the first character must be an ID
+                while (!typeExact.matcher(inputString).find()) {
+                    // If it isn't an exact match, the first character must be an ID
                     tokenStream.add(new Token(line, prev, String.valueOf(inputString.charAt(0)), Token.grammar.ID));
-                    // Add the type token to the tokenStream
-                    tokenStream.add(new Token(line, prev, String.copyValueOf(inputFile,
-                            prev + 1, current - prev), Token.grammar.TYPE));
-                    current++;
-                    prev = current;
+                    // remove the first character from the string
+                    inputString = inputString.substring(1);
+                    prev++;
                 }
+
+                // Add the type token to the tokenStream
+                tokenStream.add(new Token(line, prev, inputString, Token.grammar.TYPE));
+                current++;
+                prev = current;
 
                 // Boolean value matcher (true or false)
             } else if (bool.matcher(inputString).find()) {
@@ -266,14 +273,17 @@ public class Lexer {
                 current++;
                 prev = current;
 
-                // Character matcher (length check added because I couldn't get regex to work for just one character)
-            } else if (character.matcher(inputString).find() && inputString.length() == 1) {
-                // Wrap in a try catch so it doesn't throw an index out of bounds
+                // Character matcher
+            } else if (character.matcher(inputString).find()) {
+                // Wrap in a try catch, so it doesn't throw an index out of bounds
                 try {
                     if (isBoundary(inputFile[current + 1])) {
-                        // Since next char is a boundary this must be an ID, so create token
-                        tokenStream.add(new Token(line, prev, String.valueOf(inputFile[current]),
-                                Token.grammar.ID));
+                        // Since next char is a boundary this must be an ID. Use a for loop to create IDs
+                        // for other characters that may be a part of this string
+                        for (int k = 0; k < inputString.length(); k++) {
+                            tokenStream.add(new Token(line, prev, String.valueOf(inputString.charAt(k)),
+                                    Token.grammar.ID));
+                        }
 
                         current++;
                         prev = current;
@@ -306,7 +316,7 @@ public class Lexer {
                     "file ended with no end of program, EOP inserted", Token.grammar.WARNING));
             tokenStream.add(new Token(line, current, "$", Token.grammar.EOP));
 
-            // printToken returns a boolean to tell if there are errors. If lexer has errors parser shouldnt run
+            // printToken returns a boolean to tell if there are errors. If lexer has errors parser shouldn't run
             boolean isErrors = printToken(tokenStream);
             if (!isErrors) {
                 // Remove the warnings from the tokenStream so parse doesn't have to deal with them
@@ -343,9 +353,9 @@ public class Lexer {
      * @param input char array of all characters in between the quotes
      * @return temp tokenStream of character in quotes
      */
-    public static List<Token> stringLexer(char[] input){
+    public static ArrayList<Token> stringLexer(char[] input){
         // temp array of tokens to return and add to the end of tokenStream
-        List<Token> tempToken = new ArrayList<Token>();
+        ArrayList<Token> tempToken = new ArrayList<>();
 
         for (int i = 0; i < input.length; i++){
             // String representation of current char so regex can read it
@@ -385,7 +395,7 @@ public class Lexer {
      * @param input Token from tokenStream
      * @return boolean value, true if no errors, false if errors
      */
-    public static boolean printToken(List<Token> input){
+    public static boolean printToken(ArrayList<Token> input){
         // Add blank line at start of output
         System.out.println();
         System.out.println("Beginning Lex for program " + counter);
@@ -421,7 +431,7 @@ public class Lexer {
      * need to be removed because if there were any errors parse won't run.
      * @param input tokenStream
      */
-    public static void trim(List<Token> input) {
+    public static void trim(ArrayList<Token> input) {
         input.removeIf(token -> token.type == Token.grammar.WARNING);
     }
 }

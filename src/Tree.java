@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * This class if for the concrete syntax tree of the parser.
@@ -96,7 +95,7 @@ public class Tree {
      */
     static class Node {
         String name;
-        List<Node> children = new ArrayList<>();
+        ArrayList<Node> children = new ArrayList<>();
         Node parent;
         Tree.kind kind;
 
