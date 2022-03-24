@@ -11,6 +11,7 @@ public class Lexer {
     public static Pattern typeExact = Pattern.compile("^int$|^string$|^boolean$");
     public static Pattern character = Pattern.compile("[a-z]");
     public static Pattern bool = Pattern.compile("true|false");
+    public static Pattern boolExact = Pattern.compile("^true$|^false$");
     public static Pattern digit = Pattern.compile("[0-9]");
     public static Pattern keyword = Pattern.compile("while|if|print");
     public static Pattern keywordExact = Pattern.compile("^while$|^if$|^print$");
@@ -41,7 +42,7 @@ public class Lexer {
         // Loop through the entire char array
         while (current < inputFile.length) {
             // Make sure character is in the grammar
-            if (!all.matcher(String.copyValueOf(inputFile, current,1)).find() && !isBoundary(inputFile[current])) {
+            if (!all.matcher(String.copyValueOf(inputFile, current,1)).find() && !isBoundary(inputFile[current])){
                 tokenStream.add(new Token(line, current,
                         "unrecognized token \"" + inputFile[current] +"\"", Token.grammar.ERROR));
                 current++;
@@ -240,7 +241,7 @@ public class Lexer {
             // Keyword matcher (print, while, if)
             if (keyword.matcher(inputString).find()) {
                 while (!keywordExact.matcher(inputString).find()){
-                    // If it isn't an exact match, the first character must be an ID
+                    // If it isn't an exact match, the first character(s) must be an ID
                     tokenStream.add(new Token(line, prev, String.valueOf(inputString.charAt(0)), Token.grammar.ID));
                     // remove the first character from the string
                     inputString = inputString.substring(1);
@@ -255,7 +256,7 @@ public class Lexer {
             // int, string, and boolean matcher
             } else if (type.matcher(inputString).find()) {
                 while (!typeExact.matcher(inputString).find()) {
-                    // If it isn't an exact match, the first character must be an ID
+                    // If it isn't an exact match, the first character(s) must be an ID
                     tokenStream.add(new Token(line, prev, String.valueOf(inputString.charAt(0)), Token.grammar.ID));
                     // remove the first character from the string
                     inputString = inputString.substring(1);
@@ -269,6 +270,14 @@ public class Lexer {
 
                 // Boolean value matcher (true or false)
             } else if (bool.matcher(inputString).find()) {
+                while (!boolExact.matcher(inputString).find()) {
+                    // If it isn't an exact match, the first character(s) must be an ID
+                    tokenStream.add(new Token(line, prev, String.valueOf(inputString.charAt(0)), Token.grammar.ID));
+                    // remove the first character from the string
+                    inputString = inputString.substring(1);
+                    prev++;
+                }
+
                 tokenStream.add(new Token(line, prev, inputString, Token.grammar.BOOL_VAL));
                 current++;
                 prev = current;
@@ -277,7 +286,8 @@ public class Lexer {
             } else if (character.matcher(inputString).find()) {
                 // Wrap in a try catch, so it doesn't throw an index out of bounds
                 try {
-                    if (isBoundary(inputFile[current + 1])) {
+                    if (isBoundary(inputFile[current + 1]) ||
+                            digit.matcher(String.valueOf(inputFile[current + 1])).find()) {
                         // Since next char is a boundary this must be an ID. Use a for loop to create IDs
                         // for other characters that may be a part of this string
                         for (int k = 0; k < inputString.length(); k++) {

@@ -1,7 +1,8 @@
 import java.util.List;
 
 /**
- * This class contains the recursive decent parser for the compiler
+ * This class contains the recursive decent parser for the compiler. It also adds node to the Concrete Syntax
+ * Tree
  *
  * @author Chris Pellerito
  */
@@ -96,7 +97,9 @@ public class Parser {
     private void parseVarDec(){
         cst.addNode("Variable Declaration", Tree.kind.BRANCH);
         System.out.println("parseVarDec()");
+        cst.addNode("Type", Tree.kind.BRANCH);
         match(Token.grammar.TYPE);
+        cst.addNode("ID", Tree.kind.BRANCH);
         match(Token.grammar.ID);
         cst.moveUp();
     }
@@ -105,6 +108,7 @@ public class Parser {
     private void parseAssign(){
         cst.addNode("Assignment Statement", Tree.kind.BRANCH);
         System.out.println("parseAssign()");
+        cst.addNode("ID", Tree.kind.BRANCH);
         match(Token.grammar.ID);
         match(Token.grammar.ASSIGN_OP);
         parseExprs();
@@ -138,8 +142,10 @@ public class Parser {
             parseBoolExpr();
         else if (token.type == Token.grammar.BOOL_VAL)
             parseBoolExpr();
-        else
+        else {
+            cst.addNode("ID", Tree.kind.BRANCH);
             match(Token.grammar.ID);
+        }
         cst.moveUp();
     }
 
@@ -156,8 +162,10 @@ public class Parser {
                 match(Token.grammar.IN_EQUAL_OP);
             parseExprs();
             match(Token.grammar.R_PARAN);
-        } else
+        } else {
+            cst.addNode("Bool Val", Tree.kind.BRANCH);
             match(Token.grammar.BOOL_VAL);
+        }
 
         cst.moveUp();
     }
