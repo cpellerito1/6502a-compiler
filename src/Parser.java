@@ -17,14 +17,21 @@ public class Parser {
     // and it doesn't matter if there are more than 1 errors, just that they exist
     static boolean isErrors;
 
+    static String tempString = "";
+    static String charList = "";
+
     // Arrays of ENUM types to help with the parse
     public static Token.grammar[] statements = {Token.grammar.KEYWORD,
             Token.grammar.TYPE, Token.grammar.ID, Token.grammar.L_BRACE};
-    public static Token.grammar[] expressions = {Token.grammar.DIGIT, Token.grammar.QUOTE,
+    public static Token.grammar[] expressions = {Token.grammar.DIGIT, Token.grammar.L_QUOTE,
             Token.grammar.L_PARAN, Token.grammar.ID};
+    public static Token.grammar[] abs = {Token.grammar.ID, Token.grammar.DIGIT,
+            Token.grammar.TYPE, Token.grammar.CHAR, Token.grammar.BOOL_VAL};
 
     // Instantiate CST
     Tree cst = new Tree();
+    // Instantiate AST
+    Tree ast = new Tree();
 
     public Parser(List<Token> tokenStream){
         this.tokenStream = tokenStream;
@@ -45,6 +52,8 @@ public class Parser {
         if (!isErrors) {
             System.out.printf("%n%s%n", "CST");
             System.out.println(cst.toString());
+            System.out.printf("%n%s%n", "AST");
+            System.out.println(ast.toString());
         } else
             System.out.printf("%n%s%n", "CST not printing due to Parse error(s)");
 
@@ -54,6 +63,7 @@ public class Parser {
     // Parse block
     private void parseBlock(){
         cst.addNode("Block", Tree.kind.BRANCH);
+        ast.addNode("Block", Tree.kind.BRANCH);
         System.out.println("parseBlock()");
         match(Token.grammar.L_BRACE);
         parseStateList();
@@ -96,28 +106,33 @@ public class Parser {
     // Parse variable declaration
     private void parseVarDec(){
         cst.addNode("Variable Declaration", Tree.kind.BRANCH);
+        ast.addNode("Variable Declaration", Tree.kind.BRANCH);
         System.out.println("parseVarDec()");
         cst.addNode("Type", Tree.kind.BRANCH);
         match(Token.grammar.TYPE);
         cst.addNode("ID", Tree.kind.BRANCH);
         match(Token.grammar.ID);
         cst.moveUp();
+        ast.moveUp();
     }
 
     // Parse assignment statement
     private void parseAssign(){
         cst.addNode("Assignment Statement", Tree.kind.BRANCH);
+        ast.addNode("Assignment Statement", Tree.kind.BRANCH);
         System.out.println("parseAssign()");
         cst.addNode("ID", Tree.kind.BRANCH);
         match(Token.grammar.ID);
         match(Token.grammar.ASSIGN_OP);
         parseExprs();
         cst.moveUp();
+        ast.moveUp();
     }
 
     // Parse print statement
     private void parsePrint(){
         cst.addNode("Print Statement", Tree.kind.BRANCH);
+        ast.addNode("Print Statement", Tree.kind.BRANCH);
         System.out.println("parsePrint()");
         matchString("print");
         match(Token.grammar.L_PARAN);
@@ -126,6 +141,7 @@ public class Parser {
 
         match(Token.grammar.R_PARAN);
         cst.moveUp();
+        ast.moveUp();
     }
 
     // Parse expression
@@ -136,7 +152,7 @@ public class Parser {
         Token token = tokenStream.get(current);
         if (token.type == Token.grammar.DIGIT)
             parseIntExpr();
-        else if(token.type == Token.grammar.QUOTE)
+        else if(token.type == Token.grammar.L_QUOTE)
             parseStringExpr();
         else if (token.type == Token.grammar.L_PARAN)
             parseBoolExpr();
@@ -156,10 +172,16 @@ public class Parser {
         if (tokenStream.get(current).type == Token.grammar.L_PARAN) {
             match(Token.grammar.L_PARAN);
             parseExprs();
-            if (tokenStream.get(current).type == Token.grammar.EQUAL_OP)
+            if (tokenStream.get(current).type == Token.grammar.EQUAL_OP) {
+                ast.addNode("Is Equal", Tree.kind.BRANCH);
                 match(Token.grammar.EQUAL_OP);
-            else
+            }
+            else{
+                ast.addNode("Not Equal", Tree.kind.BRANCH);
                 match(Token.grammar.IN_EQUAL_OP);
+            }
+            ast.restructure();
+
             parseExprs();
             match(Token.grammar.R_PARAN);
         } else {
@@ -168,15 +190,16 @@ public class Parser {
         }
 
         cst.moveUp();
+        ast.moveUp();
     }
 
     // Parse string expression
     private void parseStringExpr() {
         cst.addNode("String Expression", Tree.kind.BRANCH);
         System.out.println("parseStringExpr()");
-        match(Token.grammar.QUOTE);
+        match(Token.grammar.L_QUOTE);
         parseCharList();
-        match(Token.grammar.QUOTE);
+        match(Token.grammar.R_QUOTE);
         cst.moveUp();
     }
 
@@ -202,30 +225,37 @@ public class Parser {
         match(Token.grammar.DIGIT);
         if (tokenStream.get(current).type == Token.grammar.ADD_OP){
             match(Token.grammar.ADD_OP);
+            ast.addNode("Add", Tree.kind.BRANCH);
+            ast.restructure();
             parseExprs();
         }
         else { } // Java doesn't like this
         cst.moveUp();
+        ast.moveUp();
     }
 
     // Parse while statement
     private void parseWhile(){
         cst.addNode("While Statement", Tree.kind.BRANCH);
+        ast.addNode("While Statement", Tree.kind.BRANCH);
         System.out.println("parseWhile()");
         matchString("while");
         parseBoolExpr();
         parseBlock();
         cst.moveUp();
+        ast.moveUp();
     }
 
     // Parse if statement
     private void parseIf(){
         cst.addNode("If Statement", Tree.kind.BRANCH);
+        ast.addNode("If Statement", Tree.kind.BRANCH);
         System.out.println("parseIf()");
         matchString("if");
         parseBoolExpr();
         parseBlock();
         cst.moveUp();
+        ast.moveUp();
     }
 
     /**
@@ -238,11 +268,19 @@ public class Parser {
         if (token.type == expected){
             // Consume token
             cst.addNode(token.attribute, Tree.kind.LEAF);
+            // If the token is a char, add it to a string for the AST
+            if (expected == Token.grammar.CHAR)
+                charList += token.attribute;
+
             current++;
         } else {
             System.out.println("ERROR: expected " + expected.toString() + " got " + token.type.toString() +
                     " on line " + token.lineNumber + " at " + token.linePosition);
             isErrors = true;
+        }
+
+        if (token.contains(abs)){
+            ast.addNode(token.attribute, Tree.kind.LEAF);
         }
     }
 
@@ -265,6 +303,10 @@ public class Parser {
             System.out.println("ERROR: expected " + expected + " got " + token.attribute +
                     " on line " + token.lineNumber + " at " + token.linePosition);
             isErrors = true;
+        }
+
+        if (token.contains(abs)) {
+            ast.addNode(token.attribute, Tree.kind.LEAF);
         }
     }
 }

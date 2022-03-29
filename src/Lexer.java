@@ -71,7 +71,7 @@ public class Lexer {
                     if (inputFile[current + 1] == '=') {
                         tokenStream.add(new Token(line, current, "==", Token.grammar.EQUAL_OP));
                         current = current + 2;
-                        prev = current - 1;
+                        prev = current;
 
                     } else {
                         tokenStream.add(new Token(line, current, "=", Token.grammar.ASSIGN_OP));
@@ -152,7 +152,7 @@ public class Lexer {
                     // Make sure the tempToken is null from previous iterations
                     tempToken = null;
                     // Add the token for the starting quote
-                    tokenStream.add(new Token(line, current, "\"", Token.grammar.QUOTE));
+                    tokenStream.add(new Token(line, current, "\"", Token.grammar.L_QUOTE));
                     current++;
                     prev = current;
 
@@ -180,7 +180,7 @@ public class Lexer {
                         tempToken = null;
                         // If it wasn't that means the quote was closed so add the token
                     } else
-                        tokenStream.add(new Token(line, current, "\"", Token.grammar.QUOTE));
+                        tokenStream.add(new Token(line, current, "\"", Token.grammar.R_QUOTE));
 
                     current++;
                     prev = current;

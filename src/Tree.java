@@ -22,9 +22,12 @@ public class Tree {
         Node n = new Node(name, kind);
 
         // Since the root node will be assigned the root type in the parser just check the kind to assign the root
-         if (kind == Tree.kind.ROOT) {
+         if (kind == Tree.kind.ROOT || this.root == null) {
              this.root = n;
              this.current = n;
+
+             // For the ast, since blocks are being assigned kind.BRANCH but can also be the root
+             n.kind = Tree.kind.ROOT;
          }
          // If it isn't root, make the current node the parent node of n, which was just created
          // Since you made the current node the parent, you have to add n to the children of the current node
@@ -63,7 +66,7 @@ public class Tree {
      }
 
     /**
-     * This is the recursive function that adds the depth to the CST. It is recursive called
+     * This is the recursive function that adds the depth to the CST. It is recursively called
      * after its initial call from the root node and will be called for each of the children of
      * the input node.
      * @param node The node to be added to the CST
@@ -91,6 +94,25 @@ public class Tree {
      }
 
     /**
+     * This method helps keep the order of the AST correct. Since I am building the AST at the same time as the CST,
+     * I need to rearrange the order of the nodes in certain scenarios. This method takes the current node, adds all of
+     * it's parents children to it's children. It then removes all other children from it's parent.
+     */
+    public void restructure() {
+         // Add current node and parent of current node to variables for easy access
+         Node current = this.current;
+         Node parent = this.current.parent;
+         // Add all the children of parent to the children of current
+         current.children.addAll(parent.children);
+         // Remove current from its own children because that would be weird
+         current.children.remove(current);
+         // Clear all the children from the parent
+         parent.children.clear();
+         // Re-add the current node to the children of parent
+         parent.children.add(current);
+     }
+
+    /**
      * Node class
      */
     static class Node {
@@ -98,6 +120,9 @@ public class Tree {
         ArrayList<Node> children = new ArrayList<>();
         Node parent;
         Tree.kind kind;
+        int scope;
+        Token token;
+
 
         public Node(String name, kind kind){
             this.name = name;
