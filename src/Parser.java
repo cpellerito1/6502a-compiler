@@ -13,12 +13,12 @@ public class Parser {
     // pointer for accessing tokenStream
     public static int current;
 
+    // Variable to hold the string representation of characterlists
+    public static String charToString = "";
+
     // Variable to hold the state of errors, since the CST shouldn't be printed if there are parse errors,
     // and it doesn't matter if there are more than 1 errors, just that they exist
     static boolean isErrors;
-
-    static String tempString = "";
-    static String charList = "";
 
     // Arrays of ENUM types to help with the parse
     public static Token.grammar[] statements = {Token.grammar.KEYWORD,
@@ -26,7 +26,7 @@ public class Parser {
     public static Token.grammar[] expressions = {Token.grammar.DIGIT, Token.grammar.L_QUOTE,
             Token.grammar.L_PARAN, Token.grammar.ID};
     public static Token.grammar[] abs = {Token.grammar.ID, Token.grammar.DIGIT,
-            Token.grammar.TYPE, Token.grammar.CHAR, Token.grammar.BOOL_VAL};
+            Token.grammar.TYPE, Token.grammar.BOOL_VAL};
 
     // Instantiate CST
     Tree cst = new Tree();
@@ -190,7 +190,6 @@ public class Parser {
         }
 
         cst.moveUp();
-        ast.moveUp();
     }
 
     // Parse string expression
@@ -270,8 +269,12 @@ public class Parser {
             cst.addNode(token.attribute, Tree.kind.LEAF);
             // If the token is a char, add it to a string for the AST
             if (expected == Token.grammar.CHAR)
-                charList += token.attribute;
-
+                charToString += token.attribute;
+            // Add the node when you see an end quote and reset the string
+            else if (expected == Token.grammar.R_QUOTE) {
+                ast.addNode(charToString, Tree.kind.LEAF);
+                charToString = "";
+            }
             current++;
         } else {
             System.out.println("ERROR: expected " + expected.toString() + " got " + token.type.toString() +
