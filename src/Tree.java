@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * This class if for the concrete syntax tree of the parser.
@@ -14,32 +15,57 @@ public class Tree {
      Node current;
 
     /**
-     * Adds a node to the CST
+     * Adds a node to the tree. This method is used for adding branch nodes
      * @param name Name of the node
      * @param kind Kind of the node from ENUM kind. (Root, Branch, Leaf)
      */
      public void addNode(String name, kind kind){
         Node n = new Node(name, kind);
-
-        // Since the root node will be assigned the root type in the parser just check the kind to assign the root
-         if (kind == Tree.kind.ROOT || this.root == null) {
-             this.root = n;
-             this.current = n;
-
-             // For the ast, since blocks are being assigned kind.BRANCH but can also be the root
-             n.kind = Tree.kind.ROOT;
-         }
-         // If it isn't root, make the current node the parent node of n, which was just created
-         // Since you made the current node the parent, you have to add n to the children of the current node
-         else {
-             n.parent = this.current;
-             this.current.children.add(n);
-         }
-
-         if (kind == Tree.kind.BRANCH)
-             this.current = n;
+        // Set the node's position in the tree
+        this.setNode(n);
 
      }
+
+    /**
+     * Adds a node to the tree with a token pointer. This method is used to add leaf nodes to the tree because
+     * they have a corresponding token.
+     * @param name Name of the node
+     * @param kind kind of the node from ENUM kind. (ROOT, BRANCH, LEAF)
+     * @param token Pointer to the token the Node is created from. This will help during Semantic Analysis
+     */
+    public void addNode(String name, kind kind, Token token){
+        Node n = new Node(name, kind, token);
+        // Set the node's position in the tree
+        this.setNode(n);
+
+    }
+
+    /**
+     * This method sets the node's position in the tree. This is needed to set the position for each of the addNode
+     * methods.
+     * @param node new node being added to the tree
+     */
+    private void setNode(Node node) {
+        // Since the root node will be assigned the root type in the parser just check the kind to assign the root
+        if (node.kind == Tree.kind.ROOT || this.root == null) {
+            this.root = node;
+            this.current = node;
+
+            // For the ast, since blocks are being assigned kind.BRANCH but can also be the root
+            node.kind = Tree.kind.ROOT;
+        }
+        // If it isn't root, make the current node the parent node of n, which was just created
+        // Since you made the current node the parent, you have to add n to the children of the current node
+        else {
+            node.parent = this.current;
+            this.current.children.add(node);
+        }
+
+        if (node.kind == Tree.kind.BRANCH)
+            this.current = node;
+    }
+
+
 
     /**
      * This method helps "move up" from the current node back to the parent. This is what allows for different branches
@@ -55,7 +81,7 @@ public class Tree {
      }
 
     /**
-     * This Method prints the CST using a recursive function to determine the depth
+     * This Method prints the tree using a recursive function to determine the depth
      * @return String representation of CST
      */
     @Override
@@ -96,7 +122,7 @@ public class Tree {
     /**
      * This method helps keep the order of the AST correct. Since I am building the AST at the same time as the CST,
      * I need to rearrange the order of the nodes in certain scenarios. This method takes the current node, adds all of
-     * it's parents children to it's children. It then removes all other children from it's parent.
+     * its parent's children to its children. It then removes all other children from its parent.
      */
     public void restructure() {
          // Add current node and parent of current node to variables for easy access
@@ -113,20 +139,32 @@ public class Tree {
      }
 
     /**
-     * Node class
+     * Node class. This class will be used to add nodes to the CST, AST, and the symbol table
      */
     static class Node {
         String name;
         ArrayList<Node> children = new ArrayList<>();
         Node parent;
         Tree.kind kind;
-        int scope;
+        // Pointer to the token this node is based on (only for leaf nodes/keywords)
         Token token;
+        // For nodes in the symbol table
+        int scope;
+        String type;
+        String value;
+        Boolean used;
+        HashMap<String, Node> st = new HashMap<String, Node>();
 
 
         public Node(String name, kind kind){
             this.name = name;
             this.kind = kind;
+        }
+
+        public Node(String name, kind kind, Token token){
+            this.name = name;
+            this.kind = kind;
+            this.token = token;
         }
     }
 }

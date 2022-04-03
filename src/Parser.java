@@ -55,7 +55,8 @@ public class Parser {
             System.out.printf("%n%s%n", "AST");
             System.out.println(ast.toString());
         } else
-            System.out.printf("%n%s%n", "CST not printing due to Parse error(s)");
+            System.out.printf("%n%s%n", "CST and AST not printing due to Parse error(s)");
+
 
         cst.moveUp();
     }
@@ -307,9 +308,9 @@ public class Parser {
                     " on line " + token.lineNumber + " at " + token.linePosition);
             isErrors = true;
         }
-
+        // Check if token should be added to AST
         if (token.contains(abs)) {
-            ast.addNode(token.attribute, Tree.kind.LEAF);
+            ast.addNode(token.attribute, Tree.kind.LEAF, token);
         }
     }
 }
