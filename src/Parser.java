@@ -1,4 +1,4 @@
-import java.util.List;
+import java.util.ArrayList;
 
 /**
  * This class contains the recursive decent parser for the compiler. It also adds node to the Concrete Syntax
@@ -8,7 +8,7 @@ import java.util.List;
  */
 public class Parser {
     // List for tokenStream from Lexer
-    public List<Token> tokenStream;
+    public ArrayList<Token> tokenStream;
 
     // pointer for accessing tokenStream
     public static int current;
@@ -33,12 +33,12 @@ public class Parser {
     // Instantiate AST
     Tree ast = new Tree();
 
-    public Parser(List<Token> tokenStream){
+    public Parser(ArrayList<Token> tokenStream){
         this.tokenStream = tokenStream;
     }
 
     // Main parse method
-    public void parse(){
+    public void parse(int programCounter){
         // Reset counter and errors
         current = 0;
         isErrors = false;
@@ -54,11 +54,16 @@ public class Parser {
             System.out.println(cst.toString());
             System.out.printf("%n%s%n", "AST");
             System.out.println(ast.toString());
+            // Run Semantic Analysis on the AST that was produced
+            SA sa = new SA(tokenStream, ast);
+            System.out.println("Beginning Semantic Analysis for program " + programCounter);
+            sa.semanticAnalysis();
         } else
-            System.out.printf("%n%s%n", "CST and AST not printing due to Parse error(s)");
-
+            System.out.printf("%n%s%n%s%d%n", "CST and AST not printing due to Parse error(s)",
+                    "Skipping Semantic Analysis for program ", programCounter);
 
         cst.moveUp();
+
     }
 
     // Parse block
@@ -177,12 +182,13 @@ public class Parser {
                 ast.addNode("Is Equal", Tree.kind.BRANCH);
                 match(Token.grammar.EQUAL_OP);
             }
-            else{
+            else {
                 ast.addNode("Not Equal", Tree.kind.BRANCH);
                 match(Token.grammar.IN_EQUAL_OP);
             }
             ast.restructure();
-
+            if (ast.current.parent.name.equals("Is Equal"))
+                ast.moveUp();
             parseExprs();
             match(Token.grammar.R_PARAN);
         } else {
@@ -253,6 +259,7 @@ public class Parser {
         System.out.println("parseIf()");
         matchString("if");
         parseBoolExpr();
+        ast.moveUp();
         parseBlock();
         cst.moveUp();
         ast.moveUp();
@@ -273,7 +280,8 @@ public class Parser {
                 charToString += token.attribute;
             // Add the node when you see an end quote and reset the string
             else if (expected == Token.grammar.R_QUOTE) {
-                ast.addNode(charToString, Tree.kind.LEAF);
+                ast.addNode(charToString, Tree.kind.LEAF,
+                        new Token(token.lineNumber, token.linePosition, charToString, Token.grammar.STRING));
                 charToString = "";
             }
             current++;
@@ -284,7 +292,7 @@ public class Parser {
         }
 
         if (token.contains(abs)){
-            ast.addNode(token.attribute, Tree.kind.LEAF);
+            ast.addNode(token.attribute, Tree.kind.LEAF, token);
         }
     }
 

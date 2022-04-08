@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
 
 /**
  * This class if for the concrete syntax tree of the parser.
@@ -37,7 +38,6 @@ public class Tree {
         Node n = new Node(name, kind, token);
         // Set the node's position in the tree
         this.setNode(n);
-
     }
 
     /**
@@ -125,46 +125,77 @@ public class Tree {
      * its parent's children to its children. It then removes all other children from its parent.
      */
     public void restructure() {
-         // Add current node and parent of current node to variables for easy access
-         Node current = this.current;
-         Node parent = this.current.parent;
-         // Add all the children of parent to the children of current
-         current.children.addAll(parent.children);
-         // Remove current from its own children because that would be weird
-         current.children.remove(current);
-         // Clear all the children from the parent
-         parent.children.clear();
-         // Re-add the current node to the children of parent
-         parent.children.add(current);
-     }
+
+        // Add current node and parent of current node to variables for easy access
+        Node current = this.current;
+        Node parent = this.current.parent;
+        // Temp variable to keep track of Add nodes
+        Node temp = null;
+        // If the parent has
+        if (current.name.equals("Add")) {
+            for (Node child : parent.children)
+                if ((child.name.equals("Add") || child.name.equals("Is Equal")) && !current.equals(child))
+                    temp = child;
+        }
+
+
+        // Add all the children of parent to the children of current
+        current.children.addAll(parent.children);
+        // Remove current from its own children because that would be weird
+        current.children.remove(current);
+        // Clear all the children from the parent
+        parent.children.clear();
+        // If temp is not null, add it back to children of parent
+        if (temp != null) {
+            current.children.remove(temp);
+            parent.children.add(temp);
+        }
+        // Re-add the current node to the children of parent
+        parent.children.add(current);
+    }
 
     /**
      * Node class. This class will be used to add nodes to the CST, AST, and the symbol table
      */
     static class Node {
         String name;
+        // For CST and AST
         ArrayList<Node> children = new ArrayList<>();
         Node parent;
         Tree.kind kind;
         // Pointer to the token this node is based on (only for leaf nodes/keywords)
-        Token token;
+        Token token = null;
         // For nodes in the symbol table
-        int scope;
         String type;
-        String value;
-        Boolean used;
+        int scope;
+        int lineNumber;
+        int linePos;
+        Boolean isUsed;
+        Boolean isInit;
         HashMap<String, Node> st = new HashMap<String, Node>();
 
-
+        // For nodes in the CST and AST
         public Node(String name, kind kind){
             this.name = name;
             this.kind = kind;
         }
 
+        // For leaf and keyword nodes in the CST and AST
         public Node(String name, kind kind, Token token){
             this.name = name;
             this.kind = kind;
             this.token = token;
+
+        }
+
+        // For nodes in the Symbol table
+        public Node(String type, int scope, int line, int linePos){
+            this.type = type;
+            this.scope = scope;
+            this.lineNumber = line;
+            this.linePos = linePos;
+            this.isInit = false;
+            this.isUsed = false;
         }
     }
 }
