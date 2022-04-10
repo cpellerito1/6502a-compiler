@@ -259,7 +259,6 @@ public class Parser {
         System.out.println("parseIf()");
         matchString("if");
         parseBoolExpr();
-        ast.moveUp();
         parseBlock();
         cst.moveUp();
         ast.moveUp();

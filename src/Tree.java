@@ -132,26 +132,29 @@ public class Tree {
         // Temp variable to keep track of Add nodes
         Node temp = null;
         // If the parent has
-        if (current.name.equals("Add")) {
-            for (Node child : parent.children)
-                if ((child.name.equals("Add") || child.name.equals("Is Equal")) && !current.equals(child))
-                    temp = child;
-        }
+//        if (current.name.equals("Add") || current.name.equals("Is Equal") || current.name.equals("Not Equal")) {
+//            for (Node child : parent.children)
+//                if ((child.name.equals("Add") || child.name.equals("Is Equal")) || child.name.equals("Not Equal"))
+//                    if (!current.equals(child))
+//                        temp = child;
+        //}
 
 
         // Add all the children of parent to the children of current
-        current.children.addAll(parent.children);
+        current.children.add(parent.children.get(parent.children.indexOf(current) - 1));
+        //current.children.addAll(parent.children);
         // Remove current from its own children because that would be weird
-        current.children.remove(current);
+        //current.children.remove(current);
         // Clear all the children from the parent
-        parent.children.clear();
+        //parent.children.clear();
+        parent.children.remove(parent.children.get(parent.children.indexOf(current) - 1));
         // If temp is not null, add it back to children of parent
-        if (temp != null) {
-            current.children.remove(temp);
-            parent.children.add(temp);
-        }
+//        if (temp != null && current.children.size() > 1) {
+//            current.children.remove(temp);
+//            parent.children.add(temp);
+        //}
         // Re-add the current node to the children of parent
-        parent.children.add(current);
+        //parent.children.add(current);
     }
 
     /**

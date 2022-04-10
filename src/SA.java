@@ -69,7 +69,7 @@ public class SA extends Tree {
 
         // If id is in the symbol table, check types
         if (cur.st.containsKey(id.name)) {
-            if (checkType(value).equals(checkAssign(id).type)) {
+            if (checkType(value).equals(cur.st.get(id.name).type)) {
                 cur.st.replace(id.name, new Node(value.name, scope, id.token.lineNumber, id.token.linePosition));
                 cur.st.get(id.name).isInit = true;
             }
@@ -101,7 +101,7 @@ public class SA extends Tree {
 
     private static void parseEqual(Node node) {
         if (!parseExpr(node.children.get(0)).equals(parseExpr(node.children.get(1))))
-            System.out.printf("%s%d%s%d%n%s%s%s%s","Error4: type mismatch on line: ", node.lineNumber, ":", node.linePos,
+            System.out.printf("%s%d%s%d%n%s%s%s%s%n","Error4: type mismatch on line: ", node.lineNumber, ":", node.linePos,
                     "can't compare type ", parseExpr(node.children.get(0)), " with type ",
                     parseExpr(node.children.get(1)));
 
@@ -125,15 +125,15 @@ public class SA extends Tree {
 //                        "can't compare type string with ", checkType(node.children.get(1)));
         }
 
-    private static void checkEquality(Node id, Node value) {
-        if (checkAssign(id).type != null)
-            if (!checkType(value).equals(checkAssign(id).type))
-                System.out.printf("%s%d%s%d%n%s%s%s%s", "Error5: type mismatch on line: ", id.token.lineNumber, ":",
-                        id.token.linePosition, " can't compare type ", checkAssign(id), " to type ", checkType(value));
-        else
-            System.out.println("Error6: Variable undeclared on line: " +
-                    id.token.lineNumber + ":" + id.token.linePosition);
-    }
+//    private static void checkEquality(Node id, Node value) {
+//        if (checkAssign(id).type != null)
+//            if (!checkType(value).equals(checkAssign(id).type))
+//                System.out.printf("%s%d%s%d%n%s%s%s%s", "Error5: type mismatch on line: ", id.token.lineNumber, ":",
+//                        id.token.linePosition, " can't compare type ", checkAssign(id), " to type ", checkType(value));
+//        else
+//            System.out.println("Error6: Variable undeclared on line: " +
+//                    id.token.lineNumber + ":" + id.token.linePosition);
+//    }
 
 
     /**
@@ -170,6 +170,7 @@ public class SA extends Tree {
         }
         else if (node.name.equals("Add")) {
             parseAdd(node);
+            return "int";
         }
         else if (node.token.type == Token.grammar.ID){
             if (checkAssign(node).type == null) {
