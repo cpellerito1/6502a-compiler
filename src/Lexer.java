@@ -43,7 +43,7 @@ public class Lexer {
         while (current < inputFile.length) {
             // Make sure character is in the grammar
             if (!all.matcher(String.copyValueOf(inputFile, current,1)).find() && !isBoundary(inputFile[current])){
-                tokenStream.add(new Token(line, current,
+                tokenStream.add(new Token(line, current/line,
                         "unrecognized token \"" + inputFile[current] +"\"", Token.grammar.ERROR));
                 current++;
                 prev = current;
@@ -53,7 +53,7 @@ public class Lexer {
             if (isBoundary(inputFile[current])) {
                 if (inputFile[current] == '{') {
                     // Add the token to the tokenStream using the line, current position, attribute, and enum type
-                    tokenStream.add(new Token(line, current, "{", Token.grammar.L_BRACE));
+                    tokenStream.add(new Token(line, current/line, "{", Token.grammar.L_BRACE));
                     // Increment the pointers to get next character
                     current++;
                     prev = current;
@@ -61,7 +61,7 @@ public class Lexer {
                     continue;
 
                 } else if (inputFile[current] == '}') {
-                    tokenStream.add(new Token(line, current, "}", Token.grammar.R_BRACE));
+                    tokenStream.add(new Token(line, current/line, "}", Token.grammar.R_BRACE));
                     current++;
                     prev = current;
                     continue;
@@ -69,12 +69,12 @@ public class Lexer {
                 } else if (inputFile[current] == '=') {
                     // Check if next char is an equal sign
                     if (inputFile[current + 1] == '=') {
-                        tokenStream.add(new Token(line, current, "==", Token.grammar.EQUAL_OP));
+                        tokenStream.add(new Token(line, current/line, "==", Token.grammar.EQUAL_OP));
                         current = current + 2;
                         prev = current;
 
                     } else {
-                        tokenStream.add(new Token(line, current, "=", Token.grammar.ASSIGN_OP));
+                        tokenStream.add(new Token(line, current/line, "=", Token.grammar.ASSIGN_OP));
                         current++;
                         prev = current;
                     }
@@ -83,12 +83,12 @@ public class Lexer {
                 } else if (inputFile[current] == '!') {
                     // Check if next char is an equal sign
                     if (inputFile[current + 1] == '=') {
-                        tokenStream.add(new Token(line, current, "!=", Token.grammar.IN_EQUAL_OP));
+                        tokenStream.add(new Token(line, current/line, "!=", Token.grammar.IN_EQUAL_OP));
                         current = current + 2;
                         prev = current;
 
                     } else {
-                        tokenStream.add(new Token(line, current,
+                        tokenStream.add(new Token(line, current/line,
                                 "unrecognized token \"" + inputFile[current] + "\"", Token.grammar.ERROR));
                         current++;
                         prev = current;
@@ -98,7 +98,7 @@ public class Lexer {
                 } else if (inputFile[current] == '/') {
                     if (inputFile[current + 1] == '*') {
                         // Create a tempToken now with the line positioning of the start of the comment
-                        tempToken = new Token(line, current,
+                        tempToken = new Token(line, current/line,
                                 "unclosed comment end of file", Token.grammar.WARNING);
                         current = current + 2;
                         // Find the end of the comment using a try catch to not get an index out of bounds.
@@ -129,7 +129,7 @@ public class Lexer {
 
                         // If the next character isn't a * throw an error
                     } else {
-                        tokenStream.add(new Token(line, current,
+                        tokenStream.add(new Token(line, current/line,
                                 "unrecognized token \"/\"", Token.grammar.ERROR));
 
                         current++;
@@ -143,7 +143,7 @@ public class Lexer {
                     continue;
 
                 } else if (inputFile[current] == '+') {
-                    tokenStream.add(new Token(line, current, "+", Token.grammar.ADD_OP));
+                    tokenStream.add(new Token(line, current/line, "+", Token.grammar.ADD_OP));
                     current++;
                     prev = current;
                     continue;
@@ -152,7 +152,7 @@ public class Lexer {
                     // Make sure the tempToken is null from previous iterations
                     tempToken = null;
                     // Add the token for the starting quote
-                    tokenStream.add(new Token(line, current, "\"", Token.grammar.L_QUOTE));
+                    tokenStream.add(new Token(line, current/line, "\"", Token.grammar.L_QUOTE));
                     current++;
                     prev = current;
 
@@ -165,7 +165,7 @@ public class Lexer {
                     } catch (Exception e) {
                         // If the file ends and the quote isn't terminated create a warning token and add it to
                         // temp token to keep the positioning of the tokens correct
-                        tempToken = new Token(line, current - 1,
+                        tempToken = new Token(line, (current - 1)/line,
                                 "unclosed quote at end of file", Token.grammar.WARNING);
                     }
 
@@ -180,26 +180,26 @@ public class Lexer {
                         tempToken = null;
                         // If it wasn't that means the quote was closed so add the token
                     } else
-                        tokenStream.add(new Token(line, current, "\"", Token.grammar.R_QUOTE));
+                        tokenStream.add(new Token(line, current/line, "\"", Token.grammar.R_QUOTE));
 
                     current++;
                     prev = current;
                     continue;
 
                 } else if (inputFile[current] == '(') {
-                    tokenStream.add(new Token(line, current, "(", Token.grammar.L_PARAN));
+                    tokenStream.add(new Token(line, current/line, "(", Token.grammar.L_PARAN));
                     current++;
                     prev = current;
                     continue;
 
                 } else if (inputFile[current] == ')'){
-                    tokenStream.add(new Token(line, current, ")", Token.grammar.R_PARAN));
+                    tokenStream.add(new Token(line, current/line, ")", Token.grammar.R_PARAN));
                     current++;
                     prev = current;
                     continue;
 
                 } else if (inputFile[current] == '$') {
-                    tokenStream.add(new Token(line, current, "$", Token.grammar.EOP));
+                    tokenStream.add(new Token(line, current/line, "$", Token.grammar.EOP));
                     current++;
                     prev = current;
 
@@ -242,14 +242,14 @@ public class Lexer {
             if (keyword.matcher(inputString).find()) {
                 while (!keywordExact.matcher(inputString).find()){
                     // If it isn't an exact match, the first character(s) must be an ID
-                    tokenStream.add(new Token(line, prev, String.valueOf(inputString.charAt(0)), Token.grammar.ID));
+                    tokenStream.add(new Token(line, prev/line, String.valueOf(inputString.charAt(0)), Token.grammar.ID));
                     // remove the first character from the string
                     inputString = inputString.substring(1);
                     prev++;
                 }
 
                 // Add the keyword token
-                tokenStream.add(new Token(line, prev, inputString, Token.grammar.KEYWORD));
+                tokenStream.add(new Token(line, prev/line, inputString, Token.grammar.KEYWORD));
                 current++;
                 prev = current;
 
@@ -257,14 +257,14 @@ public class Lexer {
             } else if (type.matcher(inputString).find()) {
                 while (!typeExact.matcher(inputString).find()) {
                     // If it isn't an exact match, the first character(s) must be an ID
-                    tokenStream.add(new Token(line, prev, String.valueOf(inputString.charAt(0)), Token.grammar.ID));
+                    tokenStream.add(new Token(line, prev/line, String.valueOf(inputString.charAt(0)), Token.grammar.ID));
                     // remove the first character from the string
                     inputString = inputString.substring(1);
                     prev++;
                 }
 
                 // Add the type token to the tokenStream
-                tokenStream.add(new Token(line, prev, inputString, Token.grammar.TYPE));
+                tokenStream.add(new Token(line, prev/line, inputString, Token.grammar.TYPE));
                 current++;
                 prev = current;
 
@@ -272,13 +272,13 @@ public class Lexer {
             } else if (bool.matcher(inputString).find()) {
                 while (!boolExact.matcher(inputString).find()) {
                     // If it isn't an exact match, the first character(s) must be an ID
-                    tokenStream.add(new Token(line, prev, String.valueOf(inputString.charAt(0)), Token.grammar.ID));
+                    tokenStream.add(new Token(line, prev/line, String.valueOf(inputString.charAt(0)), Token.grammar.ID));
                     // remove the first character from the string
                     inputString = inputString.substring(1);
                     prev++;
                 }
 
-                tokenStream.add(new Token(line, prev, inputString, Token.grammar.BOOL_VAL));
+                tokenStream.add(new Token(line, prev/line, inputString, Token.grammar.BOOL_VAL));
                 current++;
                 prev = current;
 
@@ -291,7 +291,7 @@ public class Lexer {
                         // Since next char is a boundary this must be an ID. Use a for loop to create IDs
                         // for other characters that may be a part of this string
                         for (int k = 0; k < inputString.length(); k++) {
-                            tokenStream.add(new Token(line, prev, String.valueOf(inputString.charAt(k)),
+                            tokenStream.add(new Token(line, prev/line, String.valueOf(inputString.charAt(k)),
                                     Token.grammar.ID));
                         }
 
@@ -304,13 +304,13 @@ public class Lexer {
                     }
 
                 } catch (Exception e) {
-                    tokenStream.add(new Token(line, prev, inputString, Token.grammar.ID));
+                    tokenStream.add(new Token(line, prev/line, inputString, Token.grammar.ID));
                     current++;
                 }
 
                 // Number matcher
             } else if (digit.matcher(inputString).find()) {
-                tokenStream.add(new Token(line, prev, inputString, Token.grammar.DIGIT));
+                tokenStream.add(new Token(line, prev/line, inputString, Token.grammar.DIGIT));
                 current++;
                 prev = current;
 
