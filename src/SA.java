@@ -1,6 +1,15 @@
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
+/**
+ * This class runs Semantic Analysis. It is passed the ast when it is constructed and parses that. SA performs
+ * type checking and scope checking. It will build a symbol table as it goes to keep track of the variables
+ * that are declared. The symbol table is a tree of hashmaps whose key will be the name of the variable and the value
+ * will be a new node object with attributes of type, scope, and linenumber/position. The symbol table will be printed
+ * at the end of each program if SA completes with no errors
+ *
+ * @author Chris Pellerito
+ */
 public class SA extends Tree {
     public ArrayList<Token> tokenStream;
     public Tree ast;
@@ -19,15 +28,27 @@ public class SA extends Tree {
         this.ast = ast;
     }
 
+    /**
+     * Main method everything runs from. Will be called by parser after each program
+     * @param programCounter number of current program from parser
+     */
     public void semanticAnalysis(int programCounter) {
         // Add root node to symbol table tree
         symbol.addNode(String.valueOf(scope), kind.ROOT);
         traverse(ast.root);
         if (!errors){
             System.out.println("Semantic Analysis completed successfully for program " + programCounter);
-            printSymbol(symbol.root, programCounter);
+            // Print the symbol table
+            System.out.println("Symbol Table for program " + programCounter);
+            System.out.println("--------------------------");
+            System.out.println("Name Type   Scope Line");
+            System.out.println("--------------------------");
+            ArrayList<String> used = printSymbol(symbol.root);
+            for (String warnings: used)
+                System.out.println(warnings);
         } else {
             System.out.println("Semantic Analysis for program " + programCounter + " failed due to errors ");
+            System.out.println("Symbol table not printing for program " + programCounter);
             errors = false;
         }
     }
@@ -47,27 +68,33 @@ public class SA extends Tree {
     }
 
     private static void parseBranch(Node node) {
-        if (node.name.equals("Block")){
-            scope++;
-            symbol.addNode(String.valueOf(scope), kind.BRANCH);
-            for (Node children: node.children)
-                traverse(children);
-            scope--;
-            symbol.moveUp();
+        switch (node.name) {
+            case "Block" -> parseBlock(node);
+            case "Variable Declaration" -> parseVarDecl(node);
+            case "Assignment Statement" -> parseAssign(node);
+            case "If Statement" -> parseIf(node);
+            case "While Statement" -> parseWhile(node);
+            case "Print Statement" -> parsePrint(node);
         }
-        else if (node.name.equals("Variable Declaration"))
-            parseVarDecl(node);
-        else if (node.name.equals("Assignment Statement"))
-            parseAssign(node);
-        else if (node.name.equals("If Statement"))
-            parseIf(node);
-        else if (node.name.equals("While Statement"))
-            parseWhile(node);
-        else if (node.name.equals("Print Statement"))
-            parsePrint(node);
+    }
+
+    public static void parseBlock(Node node){
+        scope++;
+        symbol.addNode(String.valueOf(scope), kind.BRANCH);
+        if (!node.children.isEmpty()) {
+            for (Node children : node.children)
+                traverse(children);
+        }
+        scope--;
+        symbol.moveUp();
     }
 
     private static void parseIf(Node node) {
+        parseBoolExpr(node);
+        parseBlock(node.children.get(1));
+    }
+
+    private static void parseBoolExpr(Node node) {
         if (node.children.get(0).name.equals("Is Equal") || node.children.get(0).name.equals("Not Equal"))
             parseEqual(node.children.get(0));
         else if (node.children.get(0).name.equals("Add"))
@@ -75,10 +102,8 @@ public class SA extends Tree {
     }
 
     private static void parseWhile(Node node) {
-        if (node.children.get(0).name.equals("Is Equal") || node.children.get(0).name.equals("Not Equal"))
-            parseEqual(node.children.get(0));
-        else if (node.children.get(0).name.equals("Add"))
-            parseAdd(node.children.get(0));
+        parseBoolExpr(node);
+        parseBlock(node.children.get(1));
     }
 
     private static void parsePrint(Node node) {
@@ -113,7 +138,7 @@ public class SA extends Tree {
         // Assign current symbol table to variable for easier access
         Node cur = symbol.current;
 
-        // If id is in the symbol table, check types
+        // If id is in the current symbol table, check types
         if (cur.st.containsKey(id.name)) {
             if (checkType(value).equals(cur.st.get(id.name).type))
                 cur.st.get(id.name).isInit = true;
@@ -122,9 +147,7 @@ public class SA extends Tree {
                         id.token.linePosition, "can't assign type ", checkType(value), " to type ", checkAssign(id).type);
                 errors = true;
             }
-        } else if (checkAssign(id).type != null)
-            cur.st.get(id.name).isInit = true;
-        else {
+        } else if (checkAssign(id).type == null) {
             System.out.println("Error2: variable (" + id.name + ") not declared on line: "
                     + id.token.lineNumber + ":" + id.token.linePosition);
             errors = true;
@@ -175,6 +198,7 @@ public class SA extends Tree {
         else if (child.token != null){
             if (child.token.type == Token.grammar.ID) {
                 if (checkAssign(child).type != null) {
+                    child.isUsed = true;
                     if (!checkAssign(child).type.equals("int")) {
                         System.out.printf("%s%d%s%d%n%s%s%n", "Error7: Type mismatch on line: ", child.token.lineNumber,
                                 ":", child.token.linePosition, "can't add type int with type ", checkAssign(child).type);
@@ -237,6 +261,11 @@ public class SA extends Tree {
         else {
             while (symbol.current != symbol.root) {
                 if (symbol.current.parent.st.containsKey(id.name)) {
+                    symbol.current.parent.st.get(id.name).isInit = true;
+                    // Add the variable to the current symbol table
+                    Node s = symbol.current.parent.st.get(id.name);
+                    Node temp = new Node(s.type, scope, s.lineNumber, s.linePos);
+                    cur.st.put(id.name, temp);
                     return symbol.current.parent.st.get(id.name);
                 } else
                     symbol.moveUp();
@@ -274,23 +303,34 @@ public class SA extends Tree {
      * and then prints that nodes symbol table. The hashmap gets printed using the forEach method which gets
      * passed a lambda function.
       * @param node node of the symbol table
-     * @param programCounter current program counter
      */
-    private static void printSymbol(Node node, int programCounter) {
-        System.out.println("Symbol Table for program " + programCounter);
-        System.out.println("--------------------------");
-        System.out.println("Name Type   Scope Line");
-        System.out.println("--------------------------");
-        if (node.children.size() > 0)
-            for (Node child: node.children)
-                printSymbol(child, programCounter);
-        else{
+    private static ArrayList<String> printSymbol(Node node) {
+        ArrayList<String> used = new ArrayList<String>();
+        if (node.children.size() > 0) {
+            for (Node child : node.children)
+                printSymbol(child);
+            if (!node.st.isEmpty())
+                node.st.forEach((Key, Value) -> {
+                    System.out.printf("%-5s%-9s%-5d%d%n", Key, Value.type, Value.scope, Value.lineNumber);
+                    if (!Value.isUsed)
+                        used.add(("Warning: Variable (" + Key + ") is declared but never used"));
+                    if (!Value.isInit)
+                        used.add(("Warning: Variable (" + Key + ") is declared but never initialized"));
+                });
+        }
+        else {
             if (!node.st.isEmpty())
                 node.st.forEach((Key, Value) -> {
                 System.out.printf("%-5s%-9s%-5d%d%n", Key, Value.type, Value.scope, Value.lineNumber);
+                    if (!Value.isUsed)
+                        used.add(("Warning: Variable (" + Key + ") is declared but never used"));
+                    if (!Value.isInit)
+                        used.add(("Warning: Variable (" + Key + ") is declared but never initialized"));
             });
         }
+
+        return used;
     }
 
-    }
+}
 
