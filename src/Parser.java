@@ -24,7 +24,7 @@ public class Parser {
     public static Token.grammar[] statements = {Token.grammar.KEYWORD,
             Token.grammar.TYPE, Token.grammar.ID, Token.grammar.L_BRACE};
     public static Token.grammar[] expressions = {Token.grammar.DIGIT, Token.grammar.L_QUOTE,
-            Token.grammar.L_PARAN, Token.grammar.ID};
+            Token.grammar.L_PARAN, Token.grammar.ID, Token.grammar.BOOL_VAL};
     public static Token.grammar[] abs = {Token.grammar.ID, Token.grammar.DIGIT,
             Token.grammar.TYPE, Token.grammar.BOOL_VAL};
 
@@ -57,7 +57,7 @@ public class Parser {
             // Run Semantic Analysis on the AST that was produced
             SA sa = new SA(tokenStream, ast);
             System.out.println("Beginning Semantic Analysis for program " + programCounter);
-            sa.semanticAnalysis();
+            sa.semanticAnalysis(programCounter);
         } else
             System.out.printf("%n%s%n%s%d%n", "CST and AST not printing due to Parse error(s)",
                     "Skipping Semantic Analysis for program ", programCounter);
@@ -180,22 +180,24 @@ public class Parser {
             parseExprs();
             if (tokenStream.get(current).type == Token.grammar.EQUAL_OP) {
                 ast.addNode("Is Equal", Tree.kind.BRANCH);
+                ast.current.lineNumber = tokenStream.get(current).lineNumber;
+                ast.current.linePos = tokenStream.get(current).linePosition;
                 match(Token.grammar.EQUAL_OP);
             }
             else {
                 ast.addNode("Not Equal", Tree.kind.BRANCH);
+                ast.current.lineNumber = tokenStream.get(current).lineNumber;
+                ast.current.linePos = tokenStream.get(current).linePosition;
                 match(Token.grammar.IN_EQUAL_OP);
             }
             ast.restructure();
-            if (ast.current.parent.name.equals("Is Equal"))
-                ast.moveUp();
             parseExprs();
             match(Token.grammar.R_PARAN);
+            ast.moveUp();
         } else {
             cst.addNode("Bool Val", Tree.kind.BRANCH);
             match(Token.grammar.BOOL_VAL);
         }
-
         cst.moveUp();
     }
 
@@ -232,12 +234,16 @@ public class Parser {
         if (tokenStream.get(current).type == Token.grammar.ADD_OP){
             match(Token.grammar.ADD_OP);
             ast.addNode("Add", Tree.kind.BRANCH);
-            ast.restructure();
+            if (ast.current.parent.name.equals("Assignment Statement"))
+                ast.assignRestructure();
+            else {
+                ast.restructure();
+            }
             parseExprs();
+            ast.moveUp();
         }
         else { } // Java doesn't like this
         cst.moveUp();
-        ast.moveUp();
     }
 
     // Parse while statement

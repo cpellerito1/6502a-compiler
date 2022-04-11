@@ -1,7 +1,5 @@
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Objects;
-
 /**
  * This class if for the concrete syntax tree of the parser.
  * This code is adapted from code found here: https://www.labouseur.com/projects/jsTreeDemo/treeDemo.js
@@ -132,42 +130,47 @@ public class Tree {
         // Temp variable to keep track of Add nodes
         Node temp = null;
         // If the parent has
-//        if (current.name.equals("Add") || current.name.equals("Is Equal") || current.name.equals("Not Equal")) {
-//            for (Node child : parent.children)
-//                if ((child.name.equals("Add") || child.name.equals("Is Equal")) || child.name.equals("Not Equal"))
-//                    if (!current.equals(child))
-//                        temp = child;
-        //}
-
+        if (current.name.equals("Add") || current.name.equals("Is Equal") || current.name.equals("Not Equal")) {
+            for (Node child : parent.children)
+                if ((child.name.equals("Add") || child.name.equals("Is Equal")) || child.name.equals("Not Equal"))
+                    if (!current.equals(child))
+                        temp = child;
+        }
 
         // Add all the children of parent to the children of current
-        current.children.add(parent.children.get(parent.children.indexOf(current) - 1));
-        //current.children.addAll(parent.children);
+        current.children.addAll(parent.children);
         // Remove current from its own children because that would be weird
-        //current.children.remove(current);
+        current.children.remove(current);
         // Clear all the children from the parent
-        //parent.children.clear();
-        parent.children.remove(parent.children.get(parent.children.indexOf(current) - 1));
+        parent.children.clear();
         // If temp is not null, add it back to children of parent
-//        if (temp != null && current.children.size() > 1) {
-//            current.children.remove(temp);
-//            parent.children.add(temp);
-        //}
+        if (temp != null && current.children.size() > 1) {
+            current.children.remove(temp);
+            parent.children.add(temp);
+        }
         // Re-add the current node to the children of parent
-        //parent.children.add(current);
+        parent.children.add(current);
+    }
+
+    public void assignRestructure() {
+        Node current = this.current;
+        Node parent = this.current.parent;
+
+        current.children.add(parent.children.get(parent.children.indexOf(current) - 1));
+        parent.children.remove(parent.children.get(parent.children.indexOf(current) - 1));
     }
 
     /**
-     * Node class. This class will be used to add nodes to the CST, AST, and the symbol table
+     * Node class. This class will be used to add nodes to the CST, AST, and the symbol table.
      */
     static class Node {
         String name;
         // For CST and AST
-        ArrayList<Node> children = new ArrayList<>();
+        ArrayList<Node> children = new ArrayList<Node>();
         Node parent;
         Tree.kind kind;
         // Pointer to the token this node is based on (only for leaf nodes/keywords)
-        Token token = null;
+        Token token;
         // For nodes in the symbol table
         String type;
         int scope;
@@ -178,13 +181,13 @@ public class Tree {
         HashMap<String, Node> st = new HashMap<String, Node>();
 
         // For nodes in the CST and AST
-        public Node(String name, kind kind){
+        public Node(String name, kind kind) {
             this.name = name;
             this.kind = kind;
         }
 
         // For leaf and keyword nodes in the CST and AST
-        public Node(String name, kind kind, Token token){
+        public Node(String name, kind kind, Token token) {
             this.name = name;
             this.kind = kind;
             this.token = token;
@@ -192,7 +195,7 @@ public class Tree {
         }
 
         // For nodes in the Symbol table
-        public Node(String type, int scope, int line, int linePos){
+        public Node(String type, int scope, int line, int linePos) {
             this.type = type;
             this.scope = scope;
             this.lineNumber = line;

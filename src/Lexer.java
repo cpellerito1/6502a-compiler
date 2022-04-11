@@ -85,7 +85,7 @@ public class Lexer {
                     if (inputFile[current + 1] == '=') {
                         tokenStream.add(new Token(line, current, "!=", Token.grammar.IN_EQUAL_OP));
                         current = current + 2;
-                        prev = current - 1;
+                        prev = current;
 
                     } else {
                         tokenStream.add(new Token(line, current,
@@ -212,7 +212,7 @@ public class Lexer {
                         // Instantiate parser
                         Parser p = new Parser(tokenStream);
                         System.out.println("Beginning Parse for program " + counter);
-                        p.parse();
+                        p.parse(counter);
                     }
                     else
                         System.out.println("Skipping Parse due to Lex errors");
@@ -335,7 +335,7 @@ public class Lexer {
                 // Instantiate parser
                 Parser p = new Parser(tokenStream);
                 System.out.println("Beginning Parse for program " + counter);
-                p.parse();
+                p.parse(counter);
             } else
                 System.out.println("Skipping Parse for program " + counter + " due to Lex errors");
         }
