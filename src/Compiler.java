@@ -18,7 +18,7 @@ public class Compiler {
     public static void main(String[] args) throws Exception {
         // Use readFile method to read file from standard input into a char array
         char[] inputFile = readFile(args[0]);
-        //char[] inputFile = readFile("C:\\Users\\cpell\\Documents\\compiler\\src\\test1.txt");
+        //char[] inputFile = readFile("C:\\Users\\cpell\\Documents\\compiler\\src\\test.txt");
 
         // Run the Lexer
         Lexer.lexer(inputFile);
