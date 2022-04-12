@@ -176,8 +176,8 @@ public class Tree {
         int scope;
         int lineNumber;
         int linePos;
-        Boolean isUsed;
-        Boolean isInit;
+        Boolean isUsed = false;
+        Boolean isInit = false;
         HashMap<String, Node> st = new HashMap<String, Node>();
 
         // For nodes in the CST and AST

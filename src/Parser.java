@@ -281,7 +281,7 @@ public class Parser {
             // Consume token
             cst.addNode(token.attribute, Tree.kind.LEAF);
             // If the token is a char, add it to a string for the AST
-            if (expected == Token.grammar.CHAR)
+            if (expected == Token.grammar.CHAR || expected == Token.grammar.SPACE)
                 charToString += token.attribute;
             // Add the node when you see an end quote and reset the string
             else if (expected == Token.grammar.R_QUOTE) {

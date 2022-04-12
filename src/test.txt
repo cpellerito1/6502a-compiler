@@ -1,3 +1,35 @@
+{int a a = 1
+int b b = 2
+int d
+while (a != b){
+int c c = 2
+if (c == b){
+a = c}
+}
+}$
+{string c c = "test"
+string a a = "bad"
+if (a == c){
+print(a)}
+}$
+{int a b = 1}$
+{string a a = 1
+int b b = true
+boolean c c = "test"}$
+{int a a = 1
+int b b = 2
+if (1+a == b){
+print("hello world")}}$
+{shint a a = 2}$
+{fprint(false)}$
+{while "a" {
+print("a")}
+print("done")}$
+{print(2)}$extracode
+{intii=0}$
+{intfintif=2}$
+{print("two
+lines")}$
 /*Long Test Case - Everything Except Boolean Declaration */
 {
 /* Int Declaration */
@@ -27,5 +59,17 @@ while (a != 3) {
 {inta=1intb=a}$
 /* Alex Badia test case */
 {{{}+{}{=!{}{!=[}}{=)()*}{+#&*#@}{!@&*#@}+!}$
+{print("test")}$
+{string a
+print(a)}$
+{string a
+a = "this works based on our grammar"
+/* This is a valid if statement based on our grammar */
+if true {
+print(a)}
+}$
+{int a a = 2
+int b b = 2
+if ((a==b) == (a!=4)){
+print("works")}}$
 
-{print("this should throw 2 warnings and an error

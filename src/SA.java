@@ -67,6 +67,7 @@ public class SA extends Tree {
         }
     }
 
+    // Parse Branch
     private static void parseBranch(Node node) {
         switch (node.name) {
             case "Block" -> parseBlock(node);
@@ -78,6 +79,7 @@ public class SA extends Tree {
         }
     }
 
+    // Parse Block
     public static void parseBlock(Node node){
         scope++;
         symbol.addNode(String.valueOf(scope), kind.BRANCH);
@@ -89,11 +91,13 @@ public class SA extends Tree {
         symbol.moveUp();
     }
 
+    // Parse If Statement
     private static void parseIf(Node node) {
         parseBoolExpr(node);
         parseBlock(node.children.get(1));
     }
 
+    // Parse Bool expr
     private static void parseBoolExpr(Node node) {
         if (node.children.get(0).name.equals("Is Equal") || node.children.get(0).name.equals("Not Equal"))
             parseEqual(node.children.get(0));
@@ -101,11 +105,13 @@ public class SA extends Tree {
             parseAdd(node.children.get(0));
     }
 
+    // Parse While statement
     private static void parseWhile(Node node) {
         parseBoolExpr(node);
         parseBlock(node.children.get(1));
     }
 
+    // Parse Print statement
     private static void parsePrint(Node node) {
         Node child = node.children.get(0);
         if (child.name.equals("Is Equal") || node.children.get(0).name.equals("Not Equal"))
@@ -115,8 +121,9 @@ public class SA extends Tree {
         else {
             if (child.token != null){
                 if (child.token.type == Token.grammar.ID) {
+                    setUsed(child);
                     if (checkAssign(child).type == null) {
-                        System.out.println("Error12: Variable (" + child.name + ") undeclared on line " +
+                        System.out.println("Error: Variable (" + child.name + ") undeclared on line " +
                                 child.token.lineNumber + ":" + child.token.linePosition);
                         errors = true;
                     }
@@ -125,11 +132,13 @@ public class SA extends Tree {
         }
     }
 
+    // Parse assignment statement
     private static void parseAssign(Node node) {
-        // Assign the children to variables for easier access
         Node id = node.children.get(0);
         Node value = null;
+        // Check if the first child is an addition operator
         if (node.children.get(0).name.equals("Add") && parseAdd(node)) {
+            // if it is, and parse add returns true, create a new node with type int since only ints can be added
             value = new Node("int", scope, id.token.lineNumber, id.token.linePosition);
         }
         else {
@@ -143,17 +152,22 @@ public class SA extends Tree {
             if (checkType(value).equals(cur.st.get(id.name).type))
                 cur.st.get(id.name).isInit = true;
             else {
-                System.out.printf("%s%d%s%d%n%s%s%s%s%n", "Error1: type mismatch on line: ", id.token.lineNumber, ":",
+                System.out.printf("%s%d%s%d%n%s%s%s%s%n", "Error: type mismatch on line: ", id.token.lineNumber, ":",
                         id.token.linePosition, "can't assign type ", checkType(value), " to type ", checkAssign(id).type);
                 errors = true;
             }
-        } else if (checkAssign(id).type == null) {
-            System.out.println("Error2: variable (" + id.name + ") not declared on line: "
+        } else if (checkAssign(id).type != null) {
+            // If the id is in the symbol table, but not the current one, add it to tje current one with updated scope
+            symbol.current.st.put(id.name, new Node(checkAssign(id).type, scope, id.token.lineNumber,
+                    id.token.linePosition));
+        } else {
+            System.out.println("Error: variable (" + id.name + ") not declared on line: "
                     + id.token.lineNumber + ":" + id.token.linePosition);
             errors = true;
         }
     }
 
+    // Parse variable declaration
     private static void parseVarDecl(Node node) {
         Node id = node.children.get(1);
         Node type = node.children.get(0);
@@ -163,16 +177,17 @@ public class SA extends Tree {
                     id.token.lineNumber, id.token.linePosition));
         }
         else {
-            System.out.println("Error3 on line: " + node.token.lineNumber + ":" + node.token.linePosition
+            System.out.println("Error on line: " + node.token.lineNumber + ":" + node.token.linePosition
                     + "): Variable already declared in this scope");
             errors = true;
         }
 
     }
 
+    // Parse is/not equal
     private static String parseEqual(Node node) {
         if (!parseExpr(node.children.get(0)).equals(parseExpr(node.children.get(1)))) {
-            System.out.printf("%s%d%s%d%n%s%s%s%s%n", "Error4: type mismatch on line: ", node.lineNumber, ":", node.linePos,
+            System.out.printf("%s%d%s%d%n%s%s%s%s%n", "Error: type mismatch on line: ", node.lineNumber, ":", node.linePos,
                     "can't compare type ", parseExpr(node.children.get(0)), " with type ",
                     parseExpr(node.children.get(1)));
             errors = true;
@@ -190,6 +205,7 @@ public class SA extends Tree {
      * is check that the second child is an int, an id with type int, or it can be another int expression that must
      * return type int.
      * @param node input node
+     * @return Boolean, true if the types match and false if they don'
      */
     private static boolean parseAdd(Node node) {
         Node child = node.children.get(1);
@@ -198,22 +214,22 @@ public class SA extends Tree {
         else if (child.token != null){
             if (child.token.type == Token.grammar.ID) {
                 if (checkAssign(child).type != null) {
-                    child.isUsed = true;
+                    setUsed(child);
                     if (!checkAssign(child).type.equals("int")) {
-                        System.out.printf("%s%d%s%d%n%s%s%n", "Error7: Type mismatch on line: ", child.token.lineNumber,
+                        System.out.printf("%s%d%s%d%n%s%s%n", "Error: Type mismatch on line: ", child.token.lineNumber,
                                 ":", child.token.linePosition, "can't add type int with type ", checkAssign(child).type);
                         errors = true;
                         return false;
                     }
                 } else {
-                    System.out.println("Error8: Undeclared variable on line: " + child.token.lineNumber + ":" +
+                    System.out.println("Error: Undeclared variable on line: " + child.token.lineNumber + ":" +
                             child.token.linePosition);
                     errors = true;
                     return false;
                 }
             }
             else if (child.token.type != Token.grammar.DIGIT) {
-                System.out.printf("%s%d%s%d%n%s%s", "Error9: Type mismatch on line: ", child.token.lineNumber,
+                System.out.printf("%s%d%s%d%n%s%s", "Error: Type mismatch on line: ", child.token.lineNumber,
                         ":", child.token.linePosition, "can't add type int with type ", checkType(child));
                 errors = true;
                 return false;
@@ -222,6 +238,11 @@ public class SA extends Tree {
         return true;
     }
 
+    /**
+     * This method parses expressions and returns their type.
+     * @param node Node representing an expression
+     * @return The type of the expression (string, int, boolean).
+     */
     private static String parseExpr(Node node) {
         if (node.name.equals("Is Equal") || node.name.equals("Not Equal")) {
             return parseEqual(node);
@@ -232,12 +253,12 @@ public class SA extends Tree {
         }
         else if (node.token.type == Token.grammar.ID){
             if (checkAssign(node).type == null) {
-                System.out.printf("%s%d%s%d%n", "Error0: Variable undeclared on line: ", node.token.lineNumber, ":",
+                System.out.printf("%s%d%s%d%n", "Error: Variable undeclared on line: ", node.token.lineNumber, ":",
                         node.token.linePosition);
                 errors = true;
                 return "error";
             } else {
-                node.isUsed = true;
+                setUsed(node);
                 return checkAssign(node).type;
             }
         }
@@ -249,7 +270,12 @@ public class SA extends Tree {
             return "boolean";
     }
 
-
+    /**
+     * This method checks the symbol table to see if a variable was declared
+     * @param id The node of the variable
+     * @return If the variable is in the symbol table, the node from the symbol table will be returned,
+     * if it isn't in the symbol table, a node with type null will be returned.
+     */
     private static Node checkAssign(Node id){
         // Assign current node of the symbol table to a variable to keep the current node correct after method
         Node cur = symbol.current;
@@ -262,10 +288,6 @@ public class SA extends Tree {
             while (symbol.current != symbol.root) {
                 if (symbol.current.parent.st.containsKey(id.name)) {
                     symbol.current.parent.st.get(id.name).isInit = true;
-                    // Add the variable to the current symbol table
-                    Node s = symbol.current.parent.st.get(id.name);
-                    Node temp = new Node(s.type, scope, s.lineNumber, s.linePos);
-                    cur.st.put(id.name, temp);
                     return symbol.current.parent.st.get(id.name);
                 } else
                     symbol.moveUp();
@@ -301,8 +323,9 @@ public class SA extends Tree {
     /**
      * This method prints the symbol table. It recursively calls down until it finds a node that has no children
      * and then prints that nodes symbol table. The hashmap gets printed using the forEach method which gets
-     * passed a lambda function.
-      * @param node node of the symbol table
+     * passed a lambda function. It also checks if the variables were used/initialized.
+     * @param node node of the symbol table
+     * @return ArrayList containing the warning messages
      */
     private static ArrayList<String> printSymbol(Node node) {
         ArrayList<String> used = new ArrayList<String>();
@@ -330,6 +353,26 @@ public class SA extends Tree {
         }
 
         return used;
+    }
+
+    /**
+     * This method sets the boolean isUsed attribute to true for nodes in the symbol table
+     * @param node Input Node
+     */
+    private static void setUsed(Node node) {
+        Node cur = symbol.current;
+        if (symbol.current.st.containsKey(node.name))
+            symbol.current.st.get(node.name).isUsed = true;
+        else {
+            while (symbol.current.parent != symbol.root){
+                if (symbol.current.parent.st.containsKey(node.name))
+                    symbol.current.st.get(node.name).isUsed = true;
+                else
+                    symbol.moveUp();
+            }
+        }
+        // Reset current
+        symbol.current = cur;
     }
 
 }
