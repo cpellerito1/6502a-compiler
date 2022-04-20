@@ -46,6 +46,8 @@ public class SA extends Tree {
             ArrayList<String> used = printSymbol(symbol.root);
             for (String warnings: used)
                 System.out.println(warnings);
+            CG cg = new CG(ast);
+            cg.codeGen(programCounter);
         } else {
             System.out.println("Semantic Analysis for program " + programCounter + " failed due to errors ");
             System.out.println("Symbol table not printing for program " + programCounter);
