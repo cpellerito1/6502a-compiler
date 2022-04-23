@@ -312,7 +312,9 @@ public class SA extends Tree {
         Pattern boolExact = Pattern.compile("^true$|^false$");
         Pattern digit = Pattern.compile("[0-9]");
 
-        if (node.name.equals("Add"))
+        if (checkAssign(node).type != null)
+            return checkAssign(node).type;
+        else if (node.name.equals("Add"))
             return "int";
         else if (boolExact.matcher(node.name).find())
             return "boolean";

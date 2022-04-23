@@ -18,8 +18,11 @@ public class CG extends Tree {
     // Variable to keep track of current position in executable image
     public static int current = 0;
 
-    public static HashMap<String, String> tempStatic = new HashMap<String, String>();
+    public static HashMap<String, String> tempStatic = new HashMap<>();
     public static int temp = 0;
+
+    public static HashMap<String, Integer> jump = new HashMap<>();
+    public static int j = 0;
 
     // Regex matchers
     public static Pattern digit = Pattern.compile("[0-9]");
@@ -81,7 +84,7 @@ public class CG extends Tree {
         current++;
         Node value = child.children.get(1);
         if (digit.matcher(value.name).find()) {
-            exec1[current] = 0 + value.name;
+            exec1[current] = "0" + value.name;
             current++;
         }
         exec1[current] = "8D";
@@ -125,6 +128,24 @@ public class CG extends Tree {
     }
 
     private static void genIf(Node child) {
+        Node value = child.children.get(0);
+        if (value.name.equals("Is Equal"))
+            genEqual(value);
+
+        exec1[current] = "D0";
+        current++;
+        exec1[current] = "J" + j;
+        jump.put(exec1[current], current);
+        current++;
+        j++;
+        traverse(child.children.get(child.children.size() - 1));
+        j--;
+        int temp = jump.get("J" + j);
+        int dist = current - temp;
+        if (dist > 9)
+            exec1[temp] = Integer.toHexString(dist);
+        else
+            exec1[temp] = "0" + dist;
     }
 
     private static void genWhile(Node child) {
@@ -135,6 +156,18 @@ public class CG extends Tree {
     }
 
     private static void genEqual(Node child) {
+        exec1[current] = "AE";
+        current++;
+        exec1[current] = tempStatic.get(child.children.get(0).name);
+        current++;
+        exec1[current] = "XX";
+        current++;
+        exec1[current] = "EC";
+        current++;
+        exec1[current] = tempStatic.get(child.children.get(1).name);
+        current++;
+        exec1[current] = "XX";
+        current++;
 
     }
 
