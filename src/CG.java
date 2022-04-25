@@ -57,29 +57,29 @@ public class CG extends Tree {
     }
 
     private static void genVarDecl(Node child) {
-        System.out.println("vardecl");
-        if (child.children.get(0).name.equals("int")){
-            // Load the accumulator with 00 for int init
-            exec1[current] = "A9";
-            current++;
+        Node type = child.children.get(0);
+        Node var = child.children.get(1);
+        // Load the accumulator
+        exec1[current] = "A9";
+        current++;
+        if (type.name.equals("int")){
+            // With 00 if it is an int
             exec1[current] = "00";
             current++;
-            // Store the integer in a temp location and add that location to the temp hashmap
-            exec1[current] = "8D";
+        } else if (type.name.equals("string")) {
+            exec1[current] = setString(var);
             current++;
-            exec1[current] = "T" + temp;
-            current++;
-            exec1[current] = "XX";
-            current++;
-            tempStatic.put(child.children.get(1).name, "T" + temp);
-            temp++;
         }
-//        else if (child.children.get(0).name.equals("string")){
-//            exec[current] = 0xA9;
-//            current++;
-//            // exec[current] = string pointer
-//            current++;
-        //}
+
+        // Store the var in a temp location and add that location to the temp hashmap
+        exec1[current] = "8D";
+        current++;
+        exec1[current] = "T" + temp;
+        current++;
+        exec1[current] = "XX";
+        current++;
+        tempStatic.put(child.children.get(1).name, "T" + temp);
+        temp++;
 
     }
 
@@ -168,7 +168,7 @@ public class CG extends Tree {
         traverse(child.children.get(child.children.size() - 1));
         j--;
         int temp = jump.get("J" + j);
-        int dist = current - temp;
+        int dist = (current - temp) - 1;
         if (dist > 9)
             exec1[temp] = Integer.toHexString(dist);
         else
@@ -199,23 +199,42 @@ public class CG extends Tree {
 
     }
 
+    private static String setString(Node var) {
+
+        return "";
+    }
+
+    /**
+     * This method sets the memory address of the static variables. It looks through the executable image and looks
+     * for any index that starts with a T. When it finds one it then iterates through the rest of the array, starting
+     * at the index it was found, and replaces any other indexes that contains the same string with the hex
+     * representation of the current index.
+     */
     private static void setStatic() {
-        for (int i = 0; i < 256; i++){
+        for (int i = 0; i < 256; i++) {
             if (exec1[i].charAt(0) == 'T') {
-                replace(exec1[i], Integer.toHexString(current));
-                current += 2;
+                // Set the temp string equal to a variable to avoid overwriting
+                String old = exec1[i];
+                for (int k = i; k < 256; k++) {
+                    if (exec1[k].equals(old)) {
+                        exec1[k] = Integer.toHexString(current);
+                        exec1[k + 1] = "00";
+                    }
+                }
+                // Move to next address in the stack
+                current++;
             }
         }
     }
 
-    private static void replace(String old, String n) {
-        for (int i = 0; i < 256; i++)
-            if (exec1[i].equals(old)) {
-                exec1[i] = n;
-                exec1[i+1] = "00";
-            }
-
-    }
+//    private static void replace(String old, String n) {
+//        for (int i = 0; i < 256; i++)
+//            if (exec1[i].equals(old)) {
+//                exec1[i] = n;
+//                exec1[i+1] = "00";
+//            }
+//
+//    }
 
     private static void printExec(String[] image){
         int count = 1;
