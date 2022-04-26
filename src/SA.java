@@ -46,7 +46,7 @@ public class SA extends Tree {
             ArrayList<String> used = printSymbol(symbol.root);
             for (String warnings: used)
                 System.out.println(warnings);
-            CG cg = new CG(ast);
+            CG cg = new CG(ast, symbol);
             cg.codeGen(programCounter);
         } else {
             System.out.println("Semantic Analysis for program " + programCounter + " failed due to errors ");
@@ -179,8 +179,8 @@ public class SA extends Tree {
                     id.token.lineNumber, id.token.linePosition));
         }
         else {
-            System.out.println("Error on line: " + node.token.lineNumber + ":" + node.token.linePosition
-                    + "): Variable already declared in this scope");
+            System.out.println("Error on line: (" + id.token.lineNumber + ":" + id.token.linePosition
+                    + ") Variable already declared in this scope");
             errors = true;
         }
 
