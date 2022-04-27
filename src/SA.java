@@ -151,21 +151,28 @@ public class SA extends Tree {
 
         // If id is in the current symbol table, check types
         if (cur.st.containsKey(id.name)) {
-            if (checkType(value).equals(cur.st.get(id.name).type))
+            if (checkType(value).equals(cur.st.get(id.name).type)) {
                 cur.st.get(id.name).isInit = true;
+                if (value.token != null && value.token.type == Token.grammar.ID)
+                    setUsed(value);
+            }
             else {
                 System.out.printf("%s%d%s%d%n%s%s%s%s%n", "Error: type mismatch on line: ", id.token.lineNumber, ":",
                         id.token.linePosition, "can't assign type ", checkType(value), " to type ", checkAssign(id).type);
                 errors = true;
             }
-        } else if (checkAssign(id).type != null) {
-            // If the id is in the symbol table, but not the current one, add it to tje current one with updated scope
-            symbol.current.st.put(id.name, new Node(checkAssign(id).type, scope, id.token.lineNumber,
-                    id.token.linePosition));
-        } else {
+        } else if (checkAssign(id).type == null) {
+//            // If the id is in the symbol table, but not the current one, add it to the current one with updated scope
+//            symbol.current.st.put(id.name, new Node(checkAssign(id).type, scope, id.token.lineNumber,
+//                    id.token.linePosition));
             System.out.println("Error: variable (" + id.name + ") not declared on line: "
                     + id.token.lineNumber + ":" + id.token.linePosition);
             errors = true;
+        } else {
+//            System.out.println("Error: variable (" + id.name + ") not declared on line: "
+//                    + id.token.lineNumber + ":" + id.token.linePosition);
+//            errors = true;
+            setUsed(id);
         }
     }
 
@@ -289,8 +296,12 @@ public class SA extends Tree {
         else {
             while (symbol.current != symbol.root) {
                 if (symbol.current.parent.st.containsKey(id.name)) {
-                    symbol.current.parent.st.get(id.name).isInit = true;
-                    return symbol.current.parent.st.get(id.name);
+                    // Temp variable to avoid overwriting current node
+                    Node temp = symbol.current.parent.st.get(id.name);
+                    temp.isInit = true;
+                    // Reset the current node
+                    symbol.current = cur;
+                    return temp;
                 } else
                     symbol.moveUp();
             }
@@ -308,17 +319,13 @@ public class SA extends Tree {
      * @return True if types match false if not
      */
     private static String checkType(Node node) {
-        // Regex patterns from Lex to match booleans and digits
-        Pattern boolExact = Pattern.compile("^true$|^false$");
-        Pattern digit = Pattern.compile("[0-9]");
-
         if (checkAssign(node).type != null)
             return checkAssign(node).type;
         else if (node.name.equals("Add"))
             return "int";
-        else if (boolExact.matcher(node.name).find())
+        else if (node.token.type == Token.grammar.BOOL_VAL)
             return "boolean";
-        else if (digit.matcher(node.name).find())
+        else if (node.token.type == Token.grammar.DIGIT)
             return "int";
         else
             return "string";
@@ -332,7 +339,7 @@ public class SA extends Tree {
      * @return ArrayList containing the warning messages
      */
     private static ArrayList<String> printSymbol(Node node) {
-        ArrayList<String> used = new ArrayList<String>();
+        ArrayList<String> used = new ArrayList<>();
         if (node.children.size() > 0) {
             for (Node child : node.children)
                 printSymbol(child);
@@ -340,9 +347,9 @@ public class SA extends Tree {
                 node.st.forEach((Key, Value) -> {
                     System.out.printf("%-5s%-9s%-5d%d%n", Key, Value.type, Value.scope, Value.lineNumber);
                     if (!Value.isUsed)
-                        used.add(("Warning: Variable (" + Key + ") is declared but never used"));
+                        used.add(("Warning: Variable (" + Key + ":" + Value.type + ") is declared but never used"));
                     if (!Value.isInit)
-                        used.add(("Warning: Variable (" + Key + ") is declared but never initialized"));
+                        used.add(("Warning: Variable (" + Key + ":" + Value.type + ") is declared but never initialized"));
                 });
         }
         else {
@@ -350,9 +357,9 @@ public class SA extends Tree {
                 node.st.forEach((Key, Value) -> {
                 System.out.printf("%-5s%-9s%-5d%d%n", Key, Value.type, Value.scope, Value.lineNumber);
                     if (!Value.isUsed)
-                        used.add(("Warning: Variable (" + Key + ") is declared but never used"));
+                        used.add(("Warning: Variable (" + Key +  ":" + Value.type + ") is declared but never used"));
                     if (!Value.isInit)
-                        used.add(("Warning: Variable (" + Key + ") is declared but never initialized"));
+                        used.add(("Warning: Variable (" + Key +  ":" + Value.type + ") is declared but never initialized"));
             });
         }
 
@@ -365,12 +372,14 @@ public class SA extends Tree {
      */
     private static void setUsed(Node node) {
         Node cur = symbol.current;
-        if (symbol.current.st.containsKey(node.name))
-            symbol.current.st.get(node.name).isUsed = true;
+        if (cur.st.containsKey(node.name))
+            cur.st.get(node.name).isUsed = true;
         else {
-            while (symbol.current.parent != symbol.root){
-                if (symbol.current.parent.st.containsKey(node.name))
-                    symbol.current.st.get(node.name).isUsed = true;
+            while (symbol.current.parent != null){
+                if (symbol.current.parent.st.containsKey(node.name)) {
+                    symbol.current.parent.st.get(node.name).isUsed = true;
+                    break;
+                }
                 else
                     symbol.moveUp();
             }
