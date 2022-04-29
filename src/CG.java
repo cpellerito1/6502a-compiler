@@ -29,22 +29,26 @@ public class CG extends Tree {
     public static HashMap<String, Integer> jump = new HashMap<>();
     public static int j = 0;
 
-    public static HashMap<String, Integer> tempString = new HashMap<>();
-    public static String nullptr = "FE";
+    // This is used to initialize strings since an initialized string should be null. FF will always be null.
+    // If FF isn't null that means that the program is too big and will fail but this would happen at FE since that
+    // is where the heap starts.
+    public static String nullptr = "FF";
 
     // Regex matchers
     public static Pattern digit = Pattern.compile("[0-9]");
     public static Pattern boolExact = Pattern.compile("^true$|^false$");
     public static Pattern character = Pattern.compile("[a-z]");
 
-    public CG(Tree ast, Tree symbol) {
+    public CG(Tree ast, Tree symbolTable) {
         this.ast = ast;
+        symbol = symbolTable;
     }
 
     public void codeGen(int programCounter) {
         System.out.println("Beginning Code Gen for program " + programCounter);
         for (int i = 0; i < 256; i++)
             exec[i] = "00";
+        symbol.current = symbol.root;
         traverse(ast.root);
         // Add the break code
         current++;
@@ -101,7 +105,6 @@ public class CG extends Tree {
     private static void genAssign(Node child) {
         Node var = child.children.get(0);
         Node value = child.children.get(1);
-        System.out.println("ass");
         if (value.name.equals("Add")){
             genAdd(value);
         } else if (value.name.equals("Is Equal") || value.name.equals("Not Equal")){
@@ -116,10 +119,10 @@ public class CG extends Tree {
         } else {
             exec[current] = "A9";
             current++;
-            if (digit.matcher(value.name).find()) {
+            if (getType(var).equals("int")) {
                 exec[current] = "0" + value.name;
                 current++;
-            } else if (boolExact.matcher(value.name).find()) {
+            } else if (getType(var).equals("boolean")) {
                 if (value.name.equals("true"))
                     exec[current] = "01";
                 else
@@ -139,7 +142,6 @@ public class CG extends Tree {
     }
 
     private static void genPrint(Node child) {
-        System.out.println("print");
         exec[current] = "AC";
         current++;
         if (child.children.get(0).name.equals("Add")){
@@ -153,27 +155,33 @@ public class CG extends Tree {
             current++;
             exec[current] = "A2";
             current++;
-            exec[current] = "02";
+            // Assign the type to a variable and check if it is a string, to load the x register with the proper value
+            String type = getType(child.children.get(0));
+            if (type.equals("string"))
+                exec[current] = "02";
+            else
+                exec[current] = "01";
             current++;
-            exec[current] = "FF";
+        } else if (digit.matcher(child.children.get(0).name).find()) {
+            exec[current] = "0" + child.children.get(0).name;
+            current++;
+            exec[current] = "A2";
+            current++;
+            exec[current] = "01";
+            current++;
+        } else if (boolExact.matcher(child.children.get(0).name).find() && child.children.get(0).type.equals("boolean")){
+            if (child.name.equals("true"))
+                exec[current] = "01";
+            else
+                exec[current] = "00";
+            current++;
+            exec[current] = "A2";
+            current++;
+            exec[current] = "01";
             current++;
         }
-//        exec[current] = "A2";
-//        current++;
-//        exec[current] = "01";
-//        current++;
-//        exec[current] = "FF";
-//        current++;
-//        exec[current] = 0xAC;
-//        current++;
-//        exec[current] = toInt(child.children.get(0).name);
-//        current += 2;
-//        exec[current] = 0xA2;
-//        current++;
-//        exec[current] = 0x01;
-//        current++;
-//        exec[current] = 0xFF;
-//        current++;
+        exec[current] = "FF";
+        current++;
     }
 
     private static void genIf(Node child) {
@@ -228,11 +236,9 @@ public class CG extends Tree {
             heap--;
         }
         // Decrement to terminate the next string that will be added and start the next
-        //heap --;
-        // Reset nullptr
-        nullptr = Integer.toHexString(heap);
+        heap --;
         // Return pointer to the start of the string
-        return Integer.toHexString(heap+1);
+        return Integer.toHexString(heap+2);
     }
 
     /**
@@ -271,16 +277,24 @@ public class CG extends Tree {
         }
     }
 
-//    private static String getType(Node var) {
-//        Node cur = getSymbol(symbol.root, String.valueOf(scope))
-//        if (cur != null) {
-//            if (cur.st.containsKey(var.name))
-//                return cur.st.get(var.name).type;
-//            else
-//                return findSymbol
-//        }
-//
-//    }
+    private static String getType(Node var) {
+        Node cur = symbol.current;
+        if (cur.st.containsKey(var.name))
+            return cur.st.get(var.name).type;
+        else {
+            while (symbol.current.parent != null) {
+                if (symbol.current.parent.st.containsKey(var.name))
+                    return symbol.current.st.get(var.name).type;
+                else {
+                    symbol.moveUp();
+                }
+            }
+        }
+        // Reset current symbol
+        symbol.current = cur;
+        // This return should never happen since SA already checked the AST. The variable must exist in the symbol table
+        return "Error";
+    }
 
     private static void setSymbol(String scope) {
         if (!symbol.current.name.equals(scope)){
