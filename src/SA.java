@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.regex.Pattern;
 
 /**
  * This class runs Semantic Analysis. It is passed the ast when it is constructed and parses that. SA performs

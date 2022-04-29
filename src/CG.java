@@ -21,7 +21,7 @@ public class CG extends Tree {
     // Variable to keep track of the current location of the heap. Start at 254 to allow for null termination of string
     public static int heap = 254;
     // Variable to keep track of scope
-    public static int scope = 0;
+    public static int scope = -1;
 
     public static HashMap<String, String> tempStatic = new HashMap<>();
     public static int temp = 0;
@@ -30,7 +30,7 @@ public class CG extends Tree {
     public static int j = 0;
 
     public static HashMap<String, Integer> tempString = new HashMap<>();
-    public static int str = 0;
+    public static String nullptr = "FE";
 
     // Regex matchers
     public static Pattern digit = Pattern.compile("[0-9]");
@@ -54,7 +54,13 @@ public class CG extends Tree {
     private static void traverse(Node node) {
         for (Node child: node.children){
             switch (child.name) {
-                case "Block" -> {scope++; traverse(child); scope--;}
+                case "Block" -> {
+                    scope++;
+                    setSymbol(String.valueOf(scope));
+                    traverse(child);
+                    symbol.moveUp();
+                    scope--;
+                }
                 case "Variable Declaration" -> genVarDecl(child);
                 case "Assignment Statement" -> genAssign(child);
                 case "Print Statement" -> genPrint(child);
@@ -75,7 +81,7 @@ public class CG extends Tree {
             exec[current] = "00";
             current++;
         } else if (type.name.equals("string")) {
-            exec[current] = "S" + str;
+            exec[current] = nullptr;
             tempString.put(var.name, current);
             current++;
         }
@@ -145,13 +151,19 @@ public class CG extends Tree {
             current++;
             exec[current] = "XX";
             current++;
+            exec[current] = "A2";
+            current++;
+            exec[current] = "02";
+            current++;
+            exec[current] = "FF";
+            current++;
         }
-        exec[current] = "A2";
-        current++;
-        exec[current] = "01";
-        current++;
-        exec[current] = "FF";
-        current++;
+//        exec[current] = "A2";
+//        current++;
+//        exec[current] = "01";
+//        current++;
+//        exec[current] = "FF";
+//        current++;
 //        exec[current] = 0xAC;
 //        current++;
 //        exec[current] = toInt(child.children.get(0).name);
@@ -215,10 +227,12 @@ public class CG extends Tree {
             exec[heap] = Integer.toHexString(var.name.charAt(c));
             heap--;
         }
-        // Decrement to terminate the next string that will be added
-        heap--;
+        // Decrement to terminate the next string that will be added and start the next
+        //heap --;
+        // Reset nullptr
+        nullptr = Integer.toHexString(heap);
         // Return pointer to the start of the string
-        return Integer.toHexString(heap-1);
+        return Integer.toHexString(heap+1);
     }
 
     /**
@@ -244,15 +258,6 @@ public class CG extends Tree {
         }
     }
 
-//    private static void replace(String old, String n) {
-//        for (int i = 0; i < 256; i++)
-//            if (exec[i].equals(old)) {
-//                exec[i] = n;
-//                exec[i+1] = "00";
-//            }
-//
-//    }
-
     private static void printExec(String[] image){
         int count = 1;
         for (String i: image){
@@ -277,16 +282,13 @@ public class CG extends Tree {
 //
 //    }
 
-    private static Node getSymbol(Node node, String scope) {
-        if (node.name.equals(scope))
-            return node;
-        else {
-            if (node.children.size() > 0) {
-                for (Node children : node.children)
-                    return getSymbol(children, scope);
+    private static void setSymbol(String scope) {
+        if (!symbol.current.name.equals(scope)){
+            for (Node child: symbol.current.children) {
+                if (child.name.equals(scope))
+                    symbol.current = child;
             }
         }
-        return null;
     }
 
     private static int toInt(String name) {
