@@ -21,7 +21,7 @@ public class CG extends Tree {
     // Variable to keep track of the current location of the heap. Start at 254 to allow for null termination of string
     public static int heap = 254;
     // Variable to keep track of scope
-    public static int scope = -1;
+    public static int scope = 0;
 
     public static HashMap<String, String> tempStatic = new HashMap<>();
     public static int temp = 0;
@@ -29,10 +29,9 @@ public class CG extends Tree {
     public static HashMap<String, Integer> jump = new HashMap<>();
     public static int j = 0;
 
-    // This is used to initialize strings since an initialized string should be null. FF will always be null.
-    // If FF isn't null that means that the program is too big and will fail but this would happen at FE since that
-    // is where the heap starts.
-    public static String nullptr = "FF";
+    // This is used to initialize strings since an initialized string should be null. FE will always be null.
+    // If FE isn't null that means that the program is too big and will fail since this is where the heap starts.
+    public static String nullptr = "FE";
 
     // Regex matchers
     public static Pattern digit = Pattern.compile("[0-9]");
@@ -86,7 +85,6 @@ public class CG extends Tree {
             current++;
         } else if (type.name.equals("string")) {
             exec[current] = nullptr;
-            tempString.put(var.name, current);
             current++;
         }
 
@@ -97,7 +95,7 @@ public class CG extends Tree {
         current++;
         exec[current] = "XX";
         current++;
-        tempStatic.put(child.children.get(1).name, "T" + temp);
+        tempStatic.put(var.name + ":" + scope, "T" + temp);
         temp++;
 
     }
@@ -112,10 +110,17 @@ public class CG extends Tree {
         } else if (value.token != null && value.token.type == Token.grammar.ID){
             exec[current] = "AD";
             current++;
-            exec[current] = tempStatic.get(value.name);
+//            if (tempStatic.containsKey(value.name + ":" + scope))
+//                exec[current] = tempStatic.get(value.name + ":" + scope);
+//            else
+//                exec[current] = findTemp(value);
+            exec[current] = findTemp(value, scope);
             current++;
             exec[current] = "XX";
             current++;
+            exec[current] = "A9";
+            current++;
+
         } else {
             exec[current] = "A9";
             current++;
@@ -135,7 +140,7 @@ public class CG extends Tree {
         }
         exec[current] = "8D";
         current++;
-        exec[current] = tempStatic.get(var.name);
+        exec[current] = findTemp(var, scope);
         current++;
         exec[current] = "XX";
         current++;
@@ -149,7 +154,8 @@ public class CG extends Tree {
         } else if (child.children.get(0).name.equals("Is Equal") || child.children.get(0).name.equals("Not Equal")){
             genEqual(child.children.get(0));
         } else if (child.children.get(0).token != null && child.children.get(0).token.type == Token.grammar.ID){
-            exec[current] = tempStatic.get(child.children.get(0).name);
+            //exec[current] = tempStatic.get(child.children.get(0).name);
+            exec[current] = findTemp(child.children.get(0), scope);
             current++;
             exec[current] = "XX";
             current++;
@@ -252,7 +258,7 @@ public class CG extends Tree {
             if (exec[i].charAt(0) == 'T') {
                 // Set the temp string equal to a variable to avoid overwriting
                 String old = exec[i];
-                for (int k = i; k < 256; k++) {
+                for (int k = i; k < 255; k++) {
                     if (exec[k].equals(old)) {
                         exec[k] = Integer.toHexString(current);
                         exec[k + 1] = "00";
@@ -275,6 +281,13 @@ public class CG extends Tree {
                 count++;
             }
         }
+    }
+
+    private static String findTemp(Node node, int s) {
+        while (!tempStatic.containsKey(node.name + ":" + s))
+            s--;
+
+        return tempStatic.get(node.name + ":" + s);
     }
 
     private static String getType(Node var) {
