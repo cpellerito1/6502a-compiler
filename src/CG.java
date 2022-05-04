@@ -31,7 +31,7 @@ public class CG extends Tree {
 
     // This is used to initialize strings since an initialized string should be null. FE will always be null.
     // If FE isn't null that means that the program is too big and will fail since this is where the heap starts.
-    public static String nullptr = "FE";
+    public static String nullptr = "FF";
 
     // Regex matchers
     public static Pattern digit = Pattern.compile("[0-9]");
@@ -51,8 +51,10 @@ public class CG extends Tree {
         traverse(ast.root);
         // Add the break code
         current++;
-        setStatic();
-        printExec(exec);
+        if (setStatic())
+            printExec(exec);
+        else
+            System.out.println("Error: program size exceeded");
     }
     private static void traverse(Node node) {
         for (Node child: node.children){
@@ -105,6 +107,12 @@ public class CG extends Tree {
         Node value = child.children.get(1);
         if (value.name.equals("Add")){
             genAdd(value);
+            exec[current] = "8D";
+            current++;
+            exec[current] = findTemp(var, scope);
+            current++;
+            exec[current] = "XX";
+            current++;
         } else if (value.name.equals("Is Equal") || value.name.equals("Not Equal")){
             genEqual(value);
         } else if (value.token != null && value.token.type == Token.grammar.ID){
@@ -216,6 +224,46 @@ public class CG extends Tree {
     }
 
     private static void genAdd(Node child) {
+        Node num = child.children.get(0);
+        if (num.name.equals("Add"))
+            genAdd(num);
+        else {
+            Node val = child.children.get(1);
+            if (val.token != null && val.token.type == Token.grammar.ID){
+                exec[current] = "A9";
+                current++;
+                exec[current] = 0 + num.name;
+                current++;
+                exec[current] = "6D";
+                current++;
+                exec[current] = findTemp(val, scope);
+                current++;
+                exec[current] = "XX";
+                current++;
+            } else {
+                exec[current] = "A9";
+                current++;
+                exec[current] = 0 + val.name;
+                current++;
+                exec[current] = "8D";
+                current++;
+                exec[current] = tempStatic.put("T:" + scope, "T" + temp);
+                current++;
+                exec[current] = "XX";
+                current++;
+                exec[current] = "A9";
+                current++;
+                exec[current] = 0 + num.name;
+                current++;
+                exec[current] = "6D";
+                current++;
+                exec[current] = tempStatic.get("T:" + scope);
+                current++;
+                exec[current] = "XX";
+                current++;
+
+            }
+        }
 
     }
 
@@ -253,7 +301,7 @@ public class CG extends Tree {
      * at the index it was found, and replaces any other indexes that contains the same string with the hex
      * representation of the current index.
      */
-    private static void setStatic() {
+    private static boolean setStatic() {
         for (int i = 0; i < 256; i++) {
             if (exec[i].charAt(0) == 'T') {
                 // Set the temp string equal to a variable to avoid overwriting
@@ -266,8 +314,12 @@ public class CG extends Tree {
                 }
                 // Move to next address in the stack
                 current++;
+                if (current >= heap)
+                    return false;
+
             }
         }
+        return true;
     }
 
     private static void printExec(String[] image){
@@ -317,22 +369,4 @@ public class CG extends Tree {
             }
         }
     }
-
-    private static int toInt(String name) {
-        switch(name) {
-            case "0" -> {return 0;}
-            case "1" -> {return 1;}
-            case "2" -> {return 2;}
-            case "3" -> {return 3;}
-            case "4" -> {return 4;}
-            case "5" -> {return 5;}
-            case "6" -> {return 6;}
-            case "7" -> {return 7;}
-            case "8" -> {return 8;}
-            case "9" -> {return 9;}
-        }
-        return 0;
-    }
-
-
 }
