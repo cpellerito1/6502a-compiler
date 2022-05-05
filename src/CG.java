@@ -1,5 +1,7 @@
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.regex.Pattern;
 
 /**
@@ -29,6 +31,9 @@ public class CG extends Tree {
     public static HashMap<String, Integer> jump = new HashMap<>();
     public static int j = 0;
 
+    public static ArrayList<Integer> bool = new ArrayList<>();
+    public static ArrayList<Integer> boolPrint = new ArrayList<>();
+
     // This is used to initialize strings since an initialized string should be null. FE will always be null.
     // If FE isn't null that means that the program is too big and will fail since this is where the heap starts.
     public static String nullptr = "FF";
@@ -51,8 +56,11 @@ public class CG extends Tree {
         traverse(ast.root);
         // Add the break code
         current++;
-        if (setStatic())
+        if (setStatic()) {
+            if (heap - current >= 11)
+                setBool();
             printExec(exec);
+        }
         else
             System.out.println("Error: program size exceeded");
     }
@@ -118,10 +126,6 @@ public class CG extends Tree {
         } else if (value.token != null && value.token.type == Token.grammar.ID){
             exec[current] = "AD";
             current++;
-//            if (tempStatic.containsKey(value.name + ":" + scope))
-//                exec[current] = tempStatic.get(value.name + ":" + scope);
-//            else
-//                exec[current] = findTemp(value);
             exec[current] = findTemp(value, scope);
             current++;
             exec[current] = "XX";
@@ -140,6 +144,7 @@ public class CG extends Tree {
                     exec[current] = "01";
                 else
                     exec[current] = "00";
+                bool.add(current);
                 current++;
             } else {
                 exec[current] = setString(value);
@@ -155,43 +160,51 @@ public class CG extends Tree {
     }
 
     private static void genPrint(Node child) {
-        exec[current] = "AC";
-        current++;
         if (child.children.get(0).name.equals("Add")){
+            exec[current] = "AC";
+            current++;
             genAdd(child.children.get(0));
         } else if (child.children.get(0).name.equals("Is Equal") || child.children.get(0).name.equals("Not Equal")){
+            exec[current] = "AC";
+            current++;
             genEqual(child.children.get(0));
         } else if (child.children.get(0).token != null && child.children.get(0).token.type == Token.grammar.ID){
-            //exec[current] = tempStatic.get(child.children.get(0).name);
+            exec[current] = "AC";
+            current++;
             exec[current] = findTemp(child.children.get(0), scope);
             current++;
             exec[current] = "XX";
             current++;
             exec[current] = "A2";
             current++;
-            // Assign the type to a variable and check if it is a string, to load the x register with the proper value
-            String type = getType(child.children.get(0));
-            if (type.equals("string"))
+            if (getType(child.children.get(0)).equals("string"))
                 exec[current] = "02";
-            else
+            else {
                 exec[current] = "01";
+                if (getType(child.children.get(0)).equals("boolean"))
+                    boolPrint.add(current);
+            }
             current++;
         } else if (digit.matcher(child.children.get(0).name).find()) {
+            exec[current] = "A0";
+            current++;
             exec[current] = "0" + child.children.get(0).name;
             current++;
             exec[current] = "A2";
             current++;
             exec[current] = "01";
             current++;
-        } else if (boolExact.matcher(child.children.get(0).name).find() && child.children.get(0).type.equals("boolean")){
+        } else if (boolExact.matcher(child.children.get(0).name).find()){
             if (child.name.equals("true"))
                 exec[current] = "01";
             else
                 exec[current] = "00";
+            bool.add(current);
             current++;
             exec[current] = "A2";
             current++;
             exec[current] = "01";
+            boolPrint.add(current);
             current++;
         }
         exec[current] = "FF";
@@ -247,7 +260,8 @@ public class CG extends Tree {
                 current++;
                 exec[current] = "8D";
                 current++;
-                exec[current] = tempStatic.put("T:" + scope, "T" + temp);
+                tempStatic.put("T:" + scope, "T" + temp);
+                exec[current] = "T" + temp;
                 current++;
                 exec[current] = "XX";
                 current++;
@@ -290,7 +304,7 @@ public class CG extends Tree {
             heap--;
         }
         // Decrement to terminate the next string that will be added and start the next
-        heap --;
+        heap--;
         // Return pointer to the start of the string
         return Integer.toHexString(heap+2);
     }
@@ -314,12 +328,41 @@ public class CG extends Tree {
                 }
                 // Move to next address in the stack
                 current++;
+                // Check if the stack has collided with the heap
                 if (current >= heap)
                     return false;
 
             }
         }
         return true;
+    }
+
+    private static void setBool() {
+        String t = "true";
+        String f = "false";
+        for (int i = t.length()-1; i > -1; i--){
+            exec[heap] = Integer.toHexString(t.charAt(i));
+            heap--;
+        }
+        String truePtr = Integer.toHexString(heap);
+        System.out.println("true: " + truePtr);
+        heap--;
+
+        for (int i = f.length()-1; i > -1; i--){
+            exec[heap] = Integer.toHexString(f.charAt(i));
+            heap--;
+        }
+        String falsePtr = Integer.toHexString(heap);
+        System.out.println("False: " + falsePtr);
+
+        bool.forEach((Integer) -> {
+            if (exec[Integer].equals("01"))
+                exec[Integer] = truePtr;
+            else
+                exec[Integer] = falsePtr;
+        });
+
+        boolPrint.forEach((Integer) -> exec[Integer] = "02");
     }
 
     private static void printExec(String[] image){
@@ -350,9 +393,8 @@ public class CG extends Tree {
             while (symbol.current.parent != null) {
                 if (symbol.current.parent.st.containsKey(var.name))
                     return symbol.current.st.get(var.name).type;
-                else {
+                else
                     symbol.moveUp();
-                }
             }
         }
         // Reset current symbol

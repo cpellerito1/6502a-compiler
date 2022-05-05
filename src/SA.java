@@ -195,8 +195,8 @@ public class SA extends Tree {
     // Parse is/not equal
     private static String parseEqual(Node node) {
         if (!parseExpr(node.children.get(0)).equals(parseExpr(node.children.get(1)))) {
-            System.out.printf("%s%d%s%d%n%s%s%s%s%n", "Error: type mismatch on line: ", node.lineNumber, ":", node.linePos,
-                    "can't compare type ", parseExpr(node.children.get(0)), " with type ",
+            System.out.printf("%s%d%s%d%n%s%s%s%s%n", "Error: type mismatch on line: ", node.lineNumber, ":",
+                    node.linePos, "can't compare type ", parseExpr(node.children.get(0)), " with type ",
                     parseExpr(node.children.get(1)));
             errors = true;
             return "error";
