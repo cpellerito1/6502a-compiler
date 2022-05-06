@@ -344,7 +344,7 @@ public class CG extends Tree {
             exec[heap] = Integer.toHexString(t.charAt(i));
             heap--;
         }
-        String truePtr = Integer.toHexString(heap);
+        String truePtr = Integer.toHexString(heap + 1);
         System.out.println("true: " + truePtr);
         heap--;
 
@@ -352,7 +352,7 @@ public class CG extends Tree {
             exec[heap] = Integer.toHexString(f.charAt(i));
             heap--;
         }
-        String falsePtr = Integer.toHexString(heap);
+        String falsePtr = Integer.toHexString(heap + 1);
         System.out.println("False: " + falsePtr);
 
         bool.forEach((Integer) -> {
@@ -360,6 +360,8 @@ public class CG extends Tree {
                 exec[Integer] = truePtr;
             else
                 exec[Integer] = falsePtr;
+
+            exec[Integer - 1] = "A9";
         });
 
         boolPrint.forEach((Integer) -> exec[Integer] = "02");
