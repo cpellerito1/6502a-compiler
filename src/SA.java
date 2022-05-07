@@ -98,18 +98,26 @@ public class SA extends Tree {
         parseBlock(node.children.get(1));
     }
 
-    // Parse Bool expr
-    private static void parseBoolExpr(Node node) {
-        if (node.children.get(0).name.equals("Is Equal") || node.children.get(0).name.equals("Not Equal"))
-            parseEqual(node.children.get(0));
-        else if (node.children.get(0).name.equals("Add"))
-            parseAdd(node.children.get(0));
-    }
-
     // Parse While statement
     private static void parseWhile(Node node) {
         parseBoolExpr(node);
         parseBlock(node.children.get(1));
+    }
+
+    // Parse Bool expr
+    private static void parseBoolExpr(Node node) {
+        Node expr = node.children.get(0);
+        if (expr.name.equals("Is Equal") || expr.name.equals("Not Equal"))
+            parseEqual(expr);
+        else if (expr.name.equals("Add"))
+            parseAdd(expr);
+        else if (expr.token != null){
+            if (!checkType(expr).equals("boolean")) {
+                System.out.println("Error: " + checkType(expr) + " literal must be of type bool in a bool expression" +
+                        " on line " + expr.token.lineNumber + ":" + expr.token.linePosition);
+                errors = true;
+            }
+        }
     }
 
     // Parse Print statement
@@ -137,41 +145,36 @@ public class SA extends Tree {
     private static void parseAssign(Node node) {
         Node id = node.children.get(0);
         Node value = null;
-        // Check if the first child is an addition operator
-        if (node.children.get(0).name.equals("Add") && parseAdd(node)) {
-            // if it is, and parse add returns true, create a new node with type int since only ints can be added
-            value = new Node("int", scope, id.token.lineNumber, id.token.linePosition);
-        }
-        else {
+        // Check if the second child is an addition operator
+        if (node.children.get(1).name.equals("Add")) {
+            if (parseAdd(node))
+                // if it is, and parse add returns true, create a new node with type int since only ints can be added
+                value = new Node("int", scope, id.token.lineNumber, id.token.linePosition);
+        } else
             value = node.children.get(1);
-        }
+
         // Assign current symbol table to variable for easier access
         Node cur = symbol.current;
 
-        // If id is in the current symbol table, check types
-        if (cur.st.containsKey(id.name)) {
-            if (checkType(value).equals(cur.st.get(id.name).type)) {
-                cur.st.get(id.name).isInit = true;
-                if (value.token != null && value.token.type == Token.grammar.ID)
-                    setUsed(value);
-            }
-            else {
-                System.out.printf("%s%d%s%d%n%s%s%s%s%n", "Error: type mismatch on line: ", id.token.lineNumber, ":",
-                        id.token.linePosition, "can't assign type ", checkType(value), " to type ", checkAssign(id).type);
+        if (value != null) {
+            // If id is in the current symbol table, check types
+            if (cur.st.containsKey(id.name)) {
+                if (checkType(value).equals(cur.st.get(id.name).type)) {
+                    cur.st.get(id.name).isInit = true;
+                    if (value.token != null && value.token.type == Token.grammar.ID)
+                        setUsed(value);
+                } else {
+                    System.out.printf("%s%d%s%d%n%s%s%s%s%n", "Error: type mismatch on line: ", id.token.lineNumber, ":",
+                            id.token.linePosition, "can't assign type ", checkType(value), " to type ", checkAssign(id).type);
+                    errors = true;
+                }
+            } else if (checkAssign(id).type == null) {
+                System.out.println("Error: variable (" + id.name + ") not declared on line: "
+                        + id.token.lineNumber + ":" + id.token.linePosition);
                 errors = true;
+            } else {
+                setUsed(id);
             }
-        } else if (checkAssign(id).type == null) {
-//            // If the id is in the symbol table, but not the current one, add it to the current one with updated scope
-//            symbol.current.st.put(id.name, new Node(checkAssign(id).type, scope, id.token.lineNumber,
-//                    id.token.linePosition));
-            System.out.println("Error: variable (" + id.name + ") not declared on line: "
-                    + id.token.lineNumber + ":" + id.token.linePosition);
-            errors = true;
-        } else {
-//            System.out.println("Error: variable (" + id.name + ") not declared on line: "
-//                    + id.token.lineNumber + ":" + id.token.linePosition);
-//            errors = true;
-            setUsed(id);
         }
     }
 
@@ -189,7 +192,6 @@ public class SA extends Tree {
                     + ") Variable already declared in this scope");
             errors = true;
         }
-
     }
 
     // Parse is/not equal
