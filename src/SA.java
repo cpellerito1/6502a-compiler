@@ -123,19 +123,17 @@ public class SA extends Tree {
     // Parse Print statement
     private static void parsePrint(Node node) {
         Node child = node.children.get(0);
-        if (child.name.equals("Is Equal") || node.children.get(0).name.equals("Not Equal"))
+        if (child.name.equals("Is Equal") || child.name.equals("Not Equal"))
             parseEqual(child);
         else if (child.name.equals("Add"))
             parseAdd(child);
-        else {
-            if (child.token != null){
-                if (child.token.type == Token.grammar.ID) {
-                    setUsed(child);
-                    if (checkAssign(child).type == null) {
-                        System.out.println("Error: Variable (" + child.name + ") undeclared on line " +
-                                child.token.lineNumber + ":" + child.token.linePosition);
-                        errors = true;
-                    }
+        else if (child.token != null){
+            if (child.token.type == Token.grammar.ID) {
+                setUsed(child);
+                if (checkAssign(child).type == null) {
+                    System.out.println("Error: Variable (" + child.name + ") undeclared on line " +
+                            child.token.lineNumber + ":" + child.token.linePosition);
+                    errors = true;
                 }
             }
         }
@@ -144,38 +142,43 @@ public class SA extends Tree {
     // Parse assignment statement
     private static void parseAssign(Node node) {
         Node id = node.children.get(0);
-        Node value = null;
-        // Check if the second child is an addition operator
-        if (node.children.get(1).name.equals("Add")) {
-            if (parseAdd(node))
-                // if it is, and parse add returns true, create a new node with type int since only ints can be added
-                value = new Node("int", scope, id.token.lineNumber, id.token.linePosition);
-        } else
-            value = node.children.get(1);
+        Node value = node.children.get(1);
+
+        if (value.name.equals("Add"))
+            parseAdd(value);
 
         // Assign current symbol table to variable for easier access
         Node cur = symbol.current;
 
-        if (value != null) {
-            // If id is in the current symbol table, check types
-            if (cur.st.containsKey(id.name)) {
-                if (checkType(value).equals(cur.st.get(id.name).type)) {
-                    cur.st.get(id.name).isInit = true;
-                    if (value.token != null && value.token.type == Token.grammar.ID)
-                        setUsed(value);
-                } else {
-                    System.out.printf("%s%d%s%d%n%s%s%s%s%n", "Error: type mismatch on line: ", id.token.lineNumber, ":",
-                            id.token.linePosition, "can't assign type ", checkType(value), " to type ", checkAssign(id).type);
+        // If id is in the current symbol table, check types
+        if (cur.st.containsKey(id.name)) {
+            if (value.token != null && value.token.type == Token.grammar.ID) {
+                if (checkAssign(value).type == null) {
+                    System.out.println("Error: variable (" + value.name + ") undeclared in this scope on line: " +
+                            id.token.lineNumber + ":" + id.token.linePosition);
+                    errors = true;
+                } else if (!checkAssign(value).type.equals(cur.st.get(id.name).type)) {
+                    System.out.printf("%s%d%s%d%s%s%s%s%n", "Error: type mismatch on line: ", id.token.lineNumber, ":",
+                            id.token.linePosition, " can't assign type ", checkAssign(value).type, " to type ",
+                            cur.st.get(id.name).type);
                     errors = true;
                 }
-            } else if (checkAssign(id).type == null) {
-                System.out.println("Error: variable (" + id.name + ") not declared on line: "
-                        + id.token.lineNumber + ":" + id.token.linePosition);
-                errors = true;
+            } else if (checkType(value).equals(cur.st.get(id.name).type)) {
+                cur.st.get(id.name).isInit = true;
+                if (value.token != null && value.token.type == Token.grammar.ID)
+                    setUsed(value);
             } else {
-                setUsed(id);
+                System.out.printf("%s%d%s%d%s%s%s%s%n", "Error: type mismatch on line: ", id.token.lineNumber, ":",
+                        id.token.linePosition, " can't assign type ", checkType(value), " to type ", checkAssign(id).type);
+                errors = true;
             }
-        }
+        } else if (checkAssign(id).type == null) {
+            System.out.println("Error: variable (" + id.name + ") not declared on line: "
+                    + id.token.lineNumber + ":" + id.token.linePosition);
+            errors = true;
+        } else
+            setUsed(id);
+
     }
 
     // Parse variable declaration
@@ -215,9 +218,8 @@ public class SA extends Tree {
      * is check that the second child is an int, an id with type int, or it can be another int expression that must
      * return type int.
      * @param node input node
-     * @return Boolean, true if the types match and false if they don'
      */
-    private static boolean parseAdd(Node node) {
+    private static void parseAdd(Node node) {
         Node child = node.children.get(1);
         if (child.name.equals("Add"))
             parseAdd(child);
@@ -229,23 +231,19 @@ public class SA extends Tree {
                         System.out.printf("%s%d%s%d%n%s%s%n", "Error: Type mismatch on line: ", child.token.lineNumber,
                                 ":", child.token.linePosition, "can't add type int with type ", checkAssign(child).type);
                         errors = true;
-                        return false;
                     }
                 } else {
                     System.out.println("Error: Undeclared variable on line: " + child.token.lineNumber + ":" +
                             child.token.linePosition);
                     errors = true;
-                    return false;
                 }
             }
             else if (child.token.type != Token.grammar.DIGIT) {
-                System.out.printf("%s%d%s%d%n%s%s", "Error: Type mismatch on line: ", child.token.lineNumber,
-                        ":", child.token.linePosition, "can't add type int with type ", checkType(child));
+                System.out.printf("%s%d%s%d%s%s%n", "Error: Type mismatch on line: ", child.token.lineNumber,
+                        ":", child.token.linePosition, " can't add type int with type ", checkType(child));
                 errors = true;
-                return false;
             }
         }
-        return true;
     }
 
     /**
@@ -276,8 +274,10 @@ public class SA extends Tree {
             return "int";
         else if (node.token.type == Token.grammar.STRING)
             return "string";
-        else
+        else if (node.token.type == Token.grammar.BOOL_VAL)
             return "boolean";
+        else
+            return "error";
     }
 
     /**
