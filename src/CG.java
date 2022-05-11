@@ -1,3 +1,4 @@
+import java.net.IDN;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -226,6 +227,8 @@ public class CG extends Tree {
         Node value = child.children.get(0);
         if (value.name.equals("Is Equal"))
             genEqual(value);
+        else if (value.name.equals("Not Equal"))
+            genNotEqual(value);
 
         exec[current] = "D0";
         current++;
@@ -364,7 +367,136 @@ public class CG extends Tree {
     }
 
     private static void genNotEqual(Node child) {
+        Node first = child.children.get(0);
+        Node second = child.children.get(1);
 
+        if (first.name.equals("Add")){
+            genAdd(first);
+        } else if (first.token != null){
+            if (first.token.type == Token.grammar.DIGIT){
+                exec[current] = "A9";
+                current++;
+                exec[current] = "0" + first.name;
+                current++;
+            } else if (first.token.type == Token.grammar.BOOL_VAL){
+                exec[current] = "A9";
+                current++;
+                if (first.name.equals("true"))
+                    exec[current] = "01";
+                else
+                    exec[current] = "00";
+                bool.add(current);
+                current++;
+            } else if (first.token.type == Token.grammar.STRING){
+                exec[current] = "A9";
+                current++;
+                exec[current] = setString(first);
+            } else if (first.token.type == Token.grammar.ID){
+                exec[current] = "AD";
+                current++;
+                exec[current] = findTemp(first, scope);
+                current++;
+                exec[current] = "XX";
+                current++;
+            }
+        }
+        exec[current] = "8D";
+        current++;
+        tempStatic.put(first.name, "T" + temp);
+        exec[current] = "T" + temp;
+        current++;
+        temp++;
+        exec[current] = "XX";
+        current++;
+
+        // copy compare to value
+        if (second.name.equals("Add"))
+            genAdd(second);
+        else if (second.token != null){
+            if (second.token.type == Token.grammar.ID){
+                exec[current] = "AD";
+                current++;
+                exec[current] = findTemp(second, scope);
+                current++;
+                exec[current] = "XX";
+                current++;
+            } else if (second.token.type == Token.grammar.DIGIT){
+                exec[current] = "A9";
+                current++;
+                exec[current] = "0" + first.name;
+                current++;
+            } else if (second.token.type == Token.grammar.BOOL_VAL){
+                exec[current] = "A9";
+                current++;
+                if (second.name.equals("true"))
+                    exec[current] = "01";
+                else
+                    exec[current] = "00";
+                bool.add(current);
+                current++;
+            } else if (second.token.type == Token.grammar.STRING){
+                exec[current] = "A9";
+                current++;
+                exec[current] = setString(second);
+            }
+        }
+        exec[current] = "8D";
+        current++;
+        tempStatic.put(second.name, "T" + temp);
+        exec[current] = "T" + temp;
+        current++;
+        temp++;
+        exec[current] = "XX";
+        current++;
+
+        // Compare the two newly created temp variables
+        exec[current] = "AE";
+        current++;
+        exec[current] = tempStatic.get(first.name);
+        current++;
+        exec[current] = "XX";
+        current++;
+        exec[current] = "EC";
+        current++;
+        exec[current] =tempStatic.get(second.name);
+        current++;
+        exec[current] = "XX";
+        current++;
+
+        // Load the accumulator with 0
+        exec[current] = "A9";
+        current++;
+        exec[current] = "00";
+        current++;
+        // Branch 2 bytes if t1 != t2
+        exec[current] = "D0";
+        current++;
+        exec[current] = "02";
+        current++;
+        // If t1 == t2, load accumulator with 1
+        exec[current] = "A9";
+        current++;
+        exec[current] = "01";
+        current++;
+        // Load x reg with 0
+        exec[current] = "A2";
+        current++;
+        exec[current] = "00";
+        current++;
+        // Store accumulator in second temp
+        exec[current] = "8D";
+        current++;
+        exec[current] = tempStatic.get(second.name);
+        current++;
+        exec[current] = "XX";
+        current++;
+        // Compare second temp and x reg
+        exec[current] = "EC";
+        current++;
+        exec[current] = tempStatic.get(second.name);
+        current++;
+        exec[current] = "XX";
+        current++;
     }
 
     private static String setString(Node var) {
