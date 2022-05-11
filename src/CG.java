@@ -38,6 +38,7 @@ public class CG extends Tree {
     // If FE isn't null that means that the program is too big and will fail since this is where the heap starts.
     public static String nullptr = "FF";
 
+
     // Regex matchers
     public static Pattern digit = Pattern.compile("[0-9]");
     public static Pattern boolExact = Pattern.compile("^true$|^false$");
@@ -130,9 +131,6 @@ public class CG extends Tree {
             current++;
             exec[current] = "XX";
             current++;
-            exec[current] = "A9";
-            current++;
-
         } else {
             exec[current] = "A9";
             current++;
@@ -168,45 +166,57 @@ public class CG extends Tree {
             exec[current] = "AC";
             current++;
             genEqual(child.children.get(0));
-        } else if (child.children.get(0).token != null && child.children.get(0).token.type == Token.grammar.ID){
-            exec[current] = "AC";
-            current++;
-            exec[current] = findTemp(child.children.get(0), scope);
-            current++;
-            exec[current] = "XX";
-            current++;
-            exec[current] = "A2";
-            current++;
-            if (getType(child.children.get(0)).equals("string"))
+        } else if (child.children.get(0).token != null) {
+            if (child.children.get(0).token.type == Token.grammar.ID){
+                exec[current] = "AC";
+                current++;
+                exec[current] = findTemp(child.children.get(0), scope);
+                current++;
+                exec[current] = "XX";
+                current++;
+                exec[current] = "A2";
+                current++;
+                if (getType(child.children.get(0)).equals("string"))
+                    exec[current] = "02";
+                else {
+                    exec[current] = "01";
+                    if (getType(child.children.get(0)).equals("boolean"))
+                        boolPrint.add(current);
+                }
+                current++;
+            } else if (child.children.get(0).token.type == Token.grammar.DIGIT){
+                exec[current] = "A0";
+                current++;
+                exec[current] = "0" + child.children.get(0).name;
+                current++;
+                exec[current] = "A2";
+                current++;
+                exec[current] = "01";
+                current++;
+            } else if (child.children.get(0).token.type == Token.grammar.BOOL_VAL){
+                if (child.name.equals("true"))
+                    exec[current] = "01";
+                else
+                    exec[current] = "00";
+                bool.add(current);
+                current++;
+                exec[current] = "A2";
+                current++;
+                exec[current] = "01";
+                boolPrint.add(current);
+                current++;
+            } else if (child.children.get(0).token.type == Token.grammar.STRING){
+                exec[current] = "A0";
+                current++;
+                exec[current] = setString(child.children.get(0));
+                current++;
+                exec[current] = "A2";
+                current++;
                 exec[current] = "02";
-            else {
-                exec[current] = "01";
-                if (getType(child.children.get(0)).equals("boolean"))
-                    boolPrint.add(current);
+                current++;
             }
-            current++;
-        } else if (digit.matcher(child.children.get(0).name).find()) {
-            exec[current] = "A0";
-            current++;
-            exec[current] = "0" + child.children.get(0).name;
-            current++;
-            exec[current] = "A2";
-            current++;
-            exec[current] = "01";
-            current++;
-        } else if (boolExact.matcher(child.children.get(0).name).find()){
-            if (child.name.equals("true"))
-                exec[current] = "01";
-            else
-                exec[current] = "00";
-            bool.add(current);
-            current++;
-            exec[current] = "A2";
-            current++;
-            exec[current] = "01";
-            boolPrint.add(current);
-            current++;
         }
+
         exec[current] = "FF";
         current++;
     }
@@ -275,26 +285,85 @@ public class CG extends Tree {
                 current++;
                 exec[current] = "XX";
                 current++;
-
+                temp++;
             }
         }
 
     }
 
     private static void genEqual(Node child) {
-        System.out.println("eq");
-        exec[current] = "AE";
-        current++;
-        exec[current] = tempStatic.get(child.children.get(0).name);
-        current++;
-        exec[current] = "XX";
-        current++;
-        exec[current] = "EC";
-        current++;
-        exec[current] = tempStatic.get(child.children.get(1).name);
-        current++;
-        exec[current] = "XX";
-        current++;
+        Node first = child.children.get(0);
+        Node second = child.children.get(1);
+
+        if (first.name.equals("Add"))
+            genAdd(first);
+        else if (first.name.equals("Is Equal"))
+            genEqual(first);
+        else if (first.name.equals("Not Equal"))
+            genNotEqual(first);
+        else if (first.token != null) {
+            if (first.token.type == Token.grammar.ID) {
+                exec[current] = "AE";
+                current++;
+                exec[current] = findTemp(first, scope);
+                current++;
+                exec[current] = "XX";
+            } else {
+                exec[current] = "A2";
+                current++;
+                if (first.token.type == Token.grammar.DIGIT)
+                    exec[current] = "0" + first.name;
+                else if (first.token.type == Token.grammar.BOOL_VAL)
+                    exec[current] = first.name;
+                else if (first.token.type == Token.grammar.STRING)
+                    exec[current] = setString(first);
+            }
+            current++;
+        }
+
+        if (second.name.equals("Add"))
+            genAdd(second);
+        else if (second.name.equals("Is Equal"))
+            genEqual(second);
+        else if (second.name.equals("Not Equal"))
+            genNotEqual(second);
+        else if (second.token != null) {
+            if (second.token.type == Token.grammar.ID) {
+                exec[current] = "EC";
+                current++;
+                exec[current] = findTemp(second, scope);
+                current++;
+                exec[current] = "XX";
+                current++;
+            } else {
+                exec[current] = "A9";
+                current++;
+                if (second.token.type == Token.grammar.DIGIT)
+                    exec[current] = "0" + second.name;
+                else if (second.token.type == Token.grammar.BOOL_VAL)
+                    exec[current] = second.name;
+                else if (second.token.type == Token.grammar.STRING)
+                    exec[current] = setString(second);
+                current++;
+                exec[current] = "8D";
+                current++;
+                tempStatic.put("T:" + scope, "T" + temp);
+                exec[current] = "T" + temp;
+                current++;
+                exec[current] = "XX";
+                current++;
+                exec[current] = "EC";
+                current++;
+                exec[current] = tempStatic.get("T:" + scope);
+                temp++;
+                current++;
+                exec[current] = "XX";
+                current++;
+            }
+        }
+    }
+
+    private static void genNotEqual(Node child) {
 
     }
 
@@ -337,6 +406,11 @@ public class CG extends Tree {
         return true;
     }
 
+    /**
+     * This method dynamically sets boolean values. Since printing the string version of true and false takes up space
+     * in the limited size heap. The default for bool values will be 00-false and 01-true but if there is room in the
+     * heap, the values will instead be set to the string version.
+     */
     private static void setBool() {
         String t = "true";
         String f = "false";
@@ -394,7 +468,7 @@ public class CG extends Tree {
         else {
             while (symbol.current.parent != null) {
                 if (symbol.current.parent.st.containsKey(var.name))
-                    return symbol.current.st.get(var.name).type;
+                    return symbol.current.parent.st.get(var.name).type;
                 else
                     symbol.moveUp();
             }
@@ -413,4 +487,5 @@ public class CG extends Tree {
             }
         }
     }
+
 }
