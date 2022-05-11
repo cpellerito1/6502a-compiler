@@ -26,18 +26,23 @@ public class CG extends Tree {
     // Variable to keep track of scope
     public static int scope = 0;
 
+    // Hashmap to keep track of static variables
     public static HashMap<String, String> tempStatic = new HashMap<>();
     public static int temp = 0;
 
+    // Hashmap to keep track of jumps
     public static HashMap<String, Integer> jump = new HashMap<>();
     public static int j = 0;
 
+    // Arraylists to keep track of the indexes of where bool values and the print values are too
     public static ArrayList<Integer> bool = new ArrayList<>();
     public static ArrayList<Integer> boolPrint = new ArrayList<>();
 
-    // This is used to initialize strings since an initialized string should be null. FE will always be null.
-    // If FE isn't null that means that the program is too big and will fail since this is where the heap starts.
+    // This is used to initialize strings since an initialized string should be null. FF will always 00 since the
+    // program needs to end with a 00
     public static String nullptr = "FF";
+    // Hashmap to keep track of strings. This will allow the compiler to assign like strings the same pointer
+    public static HashMap<String, String> stringTable = new HashMap<>();
 
 
     // Regex matchers
@@ -548,14 +553,18 @@ public class CG extends Tree {
     }
 
     private static String setString(Node var) {
+        if (stringTable.containsKey(var.name))
+            return stringTable.get(var.name);
+
         for (int c = var.name.length()-1; c > -1; c--){
             exec[heap] = Integer.toHexString(var.name.charAt(c));
             heap--;
         }
         // Decrement to terminate the next string that will be added and start the next
         heap--;
+        stringTable.put(var.name, Integer.toHexString(heap + 2));
         // Return pointer to the start of the string
-        return Integer.toHexString(heap+2);
+        return Integer.toHexString(heap + 2);
     }
 
     /**
