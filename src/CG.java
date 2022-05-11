@@ -247,6 +247,54 @@ public class CG extends Tree {
     }
 
     private static void genWhile(Node child) {
+        int start = current;
+        if (child.children.get(0).name.equals("Is Equal"))
+            genEqual(child.children.get(0));
+        else if (child.children.get(0).name.equals("Not Equal"))
+            genNotEqual(child.children.get(0));
+        exec[current] = "D0";
+        current++;
+        exec[current] = "J" + j;
+        jump.put(exec[current], current);
+        current++;
+        j++;
+        traverse(child.children.get(child.children.size() - 1));
+        j--;
+        // Create the unconditional branch by storing 01 in one of the temp vars and comparing it to 00 in the x reg
+        exec[current] = "A9";
+        current++;
+        exec[current] = "01";
+        current++;
+        exec[current] = "8D";
+        current++;
+        tempStatic.put("T:" + temp, "T" + temp);
+        exec[current] = tempStatic.get("T:" + temp);
+        current++;
+        exec[current] = "XX";
+        current++;
+        exec[current] = "A2";
+        current++;
+        exec[current] = "00";
+        current++;
+        exec[current] = "EC";
+        current++;
+        exec[current] = tempStatic.get("T:" + temp);
+        temp++;
+        current++;
+        exec[current] = "XX";
+        current++;
+        exec[current] = "D0";
+        current++;
+        // Jump to the start of the loop
+        exec[current] = Integer.toHexString(255 - (current - start));
+        System.out.println("jump: " + exec[current]);
+        current++;
+        int temp = jump.get("J" + j);
+        int dist = (current - temp) - 1;
+        if (dist > 9)
+            exec[temp] = Integer.toHexString(dist);
+        else
+            exec[temp] = "0" + dist;
     }
 
     private static void genAdd(Node child) {
@@ -423,7 +471,7 @@ public class CG extends Tree {
             } else if (second.token.type == Token.grammar.DIGIT){
                 exec[current] = "A9";
                 current++;
-                exec[current] = "0" + first.name;
+                exec[current] = "0" + second.name;
                 current++;
             } else if (second.token.type == Token.grammar.BOOL_VAL){
                 exec[current] = "A9";
