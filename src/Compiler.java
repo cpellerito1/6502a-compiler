@@ -10,6 +10,8 @@ import java.util.regex.*;
  * @date 27 January 2022
  */
 public class Compiler {
+    public static char[] inputFile;
+
     /**
      * main method
      * @param args
@@ -17,8 +19,8 @@ public class Compiler {
      */
     public static void main(String[] args) throws Exception {
         // Use readFile method to read file from standard input into a char array
-        char[] inputFile = readFile(args[0]);
-        //char[] inputFile = readFile("C:\\Users\\cpell\\Documents\\compiler\\src\\test.txt");
+        inputFile = readFile(args[0]);
+
 
         // Run the Lexer
         Lexer.lexer(inputFile);

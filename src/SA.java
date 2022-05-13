@@ -153,6 +153,7 @@ public class SA extends Tree {
         // If id is in the current symbol table, check types
         if (cur.st.containsKey(id.name)) {
             if (value.token != null && value.token.type == Token.grammar.ID) {
+                setUsed(value);
                 if (checkAssign(value).type == null) {
                     System.out.println("Error: variable (" + value.name + ") undeclared in this scope on line: " +
                             id.token.lineNumber + ":" + id.token.linePosition);
@@ -344,28 +345,31 @@ public class SA extends Tree {
         if (node.children.size() > 0) {
             for (Node child : node.children)
                 printSymbol(child);
-            if (!node.st.isEmpty())
-                node.st.forEach((Key, Value) -> {
-                    System.out.printf("%-5s%-9s%-5d%d%n", Key, Value.type, Value.scope, Value.lineNumber);
-                    if (!Value.isUsed)
-                        used.add(("Warning: Variable (" + Key + ":" + Value.type + ") is declared but never used"));
-                    if (!Value.isInit)
-                        used.add(("Warning: Variable (" + Key + ":" + Value.type + ") is declared but never initialized"));
-                });
         }
-        else {
-            if (!node.st.isEmpty())
-                node.st.forEach((Key, Value) -> {
+
+        if (!node.st.isEmpty())
+            node.st.forEach((Key, Value) -> {
                 System.out.printf("%-5s%-9s%-5d%d%n", Key, Value.type, Value.scope, Value.lineNumber);
-                    if (!Value.isUsed)
-                        used.add(("Warning: Variable (" + Key +  ":" + Value.type + ") is declared but never used"));
-                    if (!Value.isInit)
-                        used.add(("Warning: Variable (" + Key +  ":" + Value.type + ") is declared but never initialized"));
+                if (!Value.isUsed)
+                    used.add(("Warning: Variable (" + Key +  ":" + Value.type + ") is declared but never used"));
+                if (!Value.isInit)
+                    used.add(("Warning: Variable (" + Key +  ":" + Value.type + ") is declared but never initialized"));
             });
-        }
 
         return used;
     }
+
+//    private static ArrayList<String> print(Node node) {
+//        ArrayList<String> used = new ArrayList<>();
+//        node.st.forEach((Key, Value) -> {
+//            System.out.printf("%-5s%-9s%-5d%d%n", Key, Value.type, Value.scope, Value.lineNumber);
+//            if (!Value.isUsed)
+//                used.add(("Warning: Variable (" + Key +  ":" + Value.type + ") is declared but never used"));
+//            if (!Value.isInit)
+//                used.add(("Warning: Variable (" + Key +  ":" + Value.type + ") is declared but never initialized"));
+//        });
+//        return used;
+//    }
 
     /**
      * This method sets the boolean isUsed attribute to true for nodes in the symbol table

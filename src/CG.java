@@ -1,9 +1,5 @@
-import java.net.IDN;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.regex.Pattern;
 
 /**
  * This class will generate 6502a op codes based on the AST that was produced and type checked in Semantic Analysis
@@ -35,46 +31,61 @@ public class CG extends Tree {
     public static int j = 0;
 
     // Arraylists to keep track of the indexes of where bool values and the print values are too
-    public static ArrayList<Integer> bool = new ArrayList<>();
-    public static ArrayList<Integer> boolPrint = new ArrayList<>();
+    public static ArrayList<Integer> bool;
+    public static ArrayList<Integer> boolLiteral;
+    public static ArrayList<Integer> boolPrint;
 
     // This is used to initialize strings since an initialized string should be null. FF will always 00 since the
     // program needs to end with a 00
     public static String nullptr = "FF";
     // Hashmap to keep track of strings. This will allow the compiler to assign like strings the same pointer
-    public static HashMap<String, String> stringTable = new HashMap<>();
+    public static HashMap<String, String> stringTable;
 
-
-    // Regex matchers
-    public static Pattern digit = Pattern.compile("[0-9]");
-    public static Pattern boolExact = Pattern.compile("^true$|^false$");
-    public static Pattern character = Pattern.compile("[a-z]");
 
     public CG(Tree ast, Tree symbolTable) {
         this.ast = ast;
         symbol = symbolTable;
+        // Initialize these variables in the constructor to make sure they are reset to starting values when a new
+        // program starts
+        current = 0;
+        heap = 254;
+        scope = 0;
+        temp = 0;
+        j = 0;
+        bool = new ArrayList<>();
+        boolLiteral = new ArrayList<>();
+        boolPrint = new ArrayList<>();
+        stringTable = new HashMap<>();
     }
 
     public void codeGen(int programCounter) {
+        System.out.println();
         System.out.println("Beginning Code Gen for program " + programCounter);
         for (int i = 0; i < 256; i++)
             exec[i] = "00";
         symbol.current = symbol.root;
         traverse(ast.root);
         // Add the break code
-        current++;
+        incrementCurrent();
         if (setStatic()) {
             if (heap - current >= 11)
                 setBool();
             printExec(exec);
         }
         else
-            System.out.println("Error: program size exceeded");
+            System.out.println("Error: program size exceeded, stack collided with heap");
     }
+
+    /**
+     * This method traverses the ast and calls acom
+     * method based on the type of node
+     * @param node input node
+     */
     private static void traverse(Node node) {
         for (Node child: node.children){
             switch (child.name) {
                 case "Block" -> {
+                    // Increment the scope and set the new symbol table
                     scope++;
                     setSymbol(String.valueOf(scope));
                     traverse(child);
@@ -90,98 +101,99 @@ public class CG extends Tree {
         }
     }
 
+    // Gen VarDecl
     private static void genVarDecl(Node child) {
         Node type = child.children.get(0);
         Node var = child.children.get(1);
         // Load the accumulator
         exec[current] = "A9";
-        current++;
-        if (type.name.equals("int") || type.name.equals("boolean")){
+        incrementCurrent();
+        if (type.name.equals("int") || type.name.equals("boolean")) {
             // With 00 if it is an int or boolean
             exec[current] = "00";
-            current++;
+            incrementCurrent();
         } else if (type.name.equals("string")) {
             exec[current] = nullptr;
-            current++;
+            incrementCurrent();
         }
-
         // Store the var in a temp location and add that location to the temp hashmap
         exec[current] = "8D";
-        current++;
+        incrementCurrent();
         exec[current] = "T" + temp;
-        current++;
+        incrementCurrent();
         exec[current] = "XX";
-        current++;
+        incrementCurrent();
         tempStatic.put(var.name + ":" + scope, "T" + temp);
         temp++;
-
     }
 
+    // Gen Assignment Statement
     private static void genAssign(Node child) {
         Node var = child.children.get(0);
         Node value = child.children.get(1);
         if (value.name.equals("Add")){
             genAdd(value);
             exec[current] = "8D";
-            current++;
+            incrementCurrent();
             exec[current] = findTemp(var, scope);
-            current++;
+            incrementCurrent();
             exec[current] = "XX";
-            current++;
+            incrementCurrent();
         } else if (value.name.equals("Is Equal") || value.name.equals("Not Equal")){
             genEqual(value);
         } else if (value.token != null && value.token.type == Token.grammar.ID){
             exec[current] = "AD";
-            current++;
+            incrementCurrent();
             exec[current] = findTemp(value, scope);
-            current++;
+            incrementCurrent();
             exec[current] = "XX";
-            current++;
+            incrementCurrent();
         } else {
             exec[current] = "A9";
-            current++;
+            incrementCurrent();
             if (getType(var).equals("int")) {
                 exec[current] = "0" + value.name;
-                current++;
+                incrementCurrent();
             } else if (getType(var).equals("boolean")) {
                 if (value.name.equals("true"))
                     exec[current] = "01";
                 else
                     exec[current] = "00";
                 bool.add(current);
-                current++;
+                incrementCurrent();
             } else {
                 exec[current] = setString(value);
-                current++;
+                incrementCurrent();
             }
         }
         exec[current] = "8D";
-        current++;
+        incrementCurrent();
         exec[current] = findTemp(var, scope);
-        current++;
+        incrementCurrent();
         exec[current] = "XX";
-        current++;
+        incrementCurrent();
     }
 
+    // Gen Print Statement
     private static void genPrint(Node child) {
         if (child.children.get(0).name.equals("Add")){
             exec[current] = "AC";
-            current++;
+            incrementCurrent();
             genAdd(child.children.get(0));
         } else if (child.children.get(0).name.equals("Is Equal") || child.children.get(0).name.equals("Not Equal")){
             exec[current] = "AC";
-            current++;
+            incrementCurrent();
             genEqual(child.children.get(0));
         } else if (child.children.get(0).token != null) {
             if (child.children.get(0).token.type == Token.grammar.ID){
                 exec[current] = "AC";
-                current++;
+                incrementCurrent();
                 exec[current] = findTemp(child.children.get(0), scope);
-                current++;
+                incrementCurrent();
                 exec[current] = "XX";
-                current++;
+                incrementCurrent();
                 exec[current] = "A2";
-                current++;
+                incrementCurrent();
                 if (getType(child.children.get(0)).equals("string"))
                     exec[current] = "02";
                 else {
@@ -189,46 +201,48 @@ public class CG extends Tree {
                     if (getType(child.children.get(0)).equals("boolean"))
                         boolPrint.add(current);
                 }
-                current++;
+                incrementCurrent();
             } else if (child.children.get(0).token.type == Token.grammar.DIGIT){
                 exec[current] = "A0";
-                current++;
+                incrementCurrent();
                 exec[current] = "0" + child.children.get(0).name;
-                current++;
+                incrementCurrent();
                 exec[current] = "A2";
-                current++;
+                incrementCurrent();
                 exec[current] = "01";
-                current++;
+                incrementCurrent();
             } else if (child.children.get(0).token.type == Token.grammar.BOOL_VAL){
-                if (child.name.equals("true"))
+                exec[current] = "A0";
+                incrementCurrent();
+                if (child.children.get(0).name.equals("true"))
                     exec[current] = "01";
                 else
                     exec[current] = "00";
-                bool.add(current);
-                current++;
+                boolLiteral.add(current);
+                incrementCurrent();
                 exec[current] = "A2";
-                current++;
+                incrementCurrent();
                 exec[current] = "01";
                 boolPrint.add(current);
-                current++;
+                incrementCurrent();
             } else if (child.children.get(0).token.type == Token.grammar.STRING){
                 exec[current] = "A0";
-                current++;
+                incrementCurrent();
                 exec[current] = setString(child.children.get(0));
-                current++;
+                incrementCurrent();
                 exec[current] = "A2";
-                current++;
+                incrementCurrent();
                 exec[current] = "02";
-                current++;
+                incrementCurrent();
             }
         }
 
         exec[current] = "FF";
-        current++;
+        incrementCurrent();
     }
 
+    // Gen If statement
     private static void genIf(Node child) {
-        System.out.println("if");
         Node value = child.children.get(0);
         if (value.name.equals("Is Equal"))
             genEqual(value);
@@ -236,21 +250,26 @@ public class CG extends Tree {
             genNotEqual(value);
 
         exec[current] = "D0";
-        current++;
+        incrementCurrent();
         exec[current] = "J" + j;
         jump.put(exec[current], current);
-        current++;
+        incrementCurrent();
         j++;
         traverse(child.children.get(child.children.size() - 1));
         j--;
         int temp = jump.get("J" + j);
         int dist = (current - temp) - 1;
-        if (dist > 9)
-            exec[temp] = Integer.toHexString(dist);
+        if (dist > 9) {
+            if (dist < 16)
+                exec[temp] = "0" + Integer.toHexString(dist);
+            else
+                exec[temp] = Integer.toHexString(dist);
+        }
         else
             exec[temp] = "0" + dist;
     }
 
+    // Gen While Statement
     private static void genWhile(Node child) {
         int start = current;
         if (child.children.get(0).name.equals("Is Equal"))
@@ -258,101 +277,120 @@ public class CG extends Tree {
         else if (child.children.get(0).name.equals("Not Equal"))
             genNotEqual(child.children.get(0));
         exec[current] = "D0";
-        current++;
+        incrementCurrent();
         exec[current] = "J" + j;
         jump.put(exec[current], current);
-        current++;
+        incrementCurrent();
         j++;
         traverse(child.children.get(child.children.size() - 1));
         j--;
         // Create the unconditional branch by storing 01 in one of the temp vars and comparing it to 00 in the x reg
         exec[current] = "A9";
-        current++;
+        incrementCurrent();
         exec[current] = "01";
-        current++;
+        incrementCurrent();
         exec[current] = "8D";
-        current++;
+        incrementCurrent();
         tempStatic.put("T:" + temp, "T" + temp);
         exec[current] = tempStatic.get("T:" + temp);
-        current++;
+        incrementCurrent();
         exec[current] = "XX";
-        current++;
+        incrementCurrent();
         exec[current] = "A2";
-        current++;
+        incrementCurrent();
         exec[current] = "00";
-        current++;
+        incrementCurrent();
         exec[current] = "EC";
-        current++;
+        incrementCurrent();
         exec[current] = tempStatic.get("T:" + temp);
         temp++;
-        current++;
+        incrementCurrent();
         exec[current] = "XX";
-        current++;
+        incrementCurrent();
         exec[current] = "D0";
-        current++;
+        incrementCurrent();
         // Jump to the start of the loop
         exec[current] = Integer.toHexString(255 - (current - start));
-        System.out.println("jump: " + exec[current]);
-        current++;
+        incrementCurrent();
         int temp = jump.get("J" + j);
         int dist = (current - temp) - 1;
-        if (dist > 9)
-            exec[temp] = Integer.toHexString(dist);
+        if (dist > 9) {
+            if (dist < 16)
+                exec[temp] = "0" + Integer.toHexString(dist);
+            else
+                exec[temp] = Integer.toHexString(dist);
+        }
         else
             exec[temp] = "0" + dist;
     }
 
-    private static void genAdd(Node child) {
+    // Gen Add
+    private static void genAdd(Node child){
         Node num = child.children.get(0);
         if (num.name.equals("Add"))
             genAdd(num);
         else {
             Node val = child.children.get(1);
-            if (val.token != null && val.token.type == Token.grammar.ID){
+            if (val.token != null && val.token.type == Token.grammar.ID) {
                 exec[current] = "A9";
-                current++;
+                incrementCurrent();
                 exec[current] = 0 + num.name;
-                current++;
+                incrementCurrent();
                 exec[current] = "6D";
-                current++;
+                incrementCurrent();
                 exec[current] = findTemp(val, scope);
-                current++;
+                incrementCurrent();
                 exec[current] = "XX";
-                current++;
+                incrementCurrent();
             } else {
                 exec[current] = "A9";
-                current++;
+                incrementCurrent();
                 exec[current] = 0 + val.name;
-                current++;
+                incrementCurrent();
                 exec[current] = "8D";
-                current++;
+                incrementCurrent();
                 tempStatic.put("T:" + scope, "T" + temp);
                 exec[current] = "T" + temp;
-                current++;
+                incrementCurrent();
                 exec[current] = "XX";
-                current++;
+                incrementCurrent();
                 exec[current] = "A9";
-                current++;
+                incrementCurrent();
                 exec[current] = 0 + num.name;
-                current++;
+                incrementCurrent();
                 exec[current] = "6D";
-                current++;
+                incrementCurrent();
                 exec[current] = tempStatic.get("T:" + scope);
-                current++;
+                incrementCurrent();
                 exec[current] = "XX";
-                current++;
+                incrementCurrent();
                 temp++;
             }
         }
-
     }
 
+    // Gen Equal
     private static void genEqual(Node child) {
         Node first = child.children.get(0);
         Node second = child.children.get(1);
 
-        if (first.name.equals("Add"))
+        if (first.name.equals("Add")) {
             genAdd(first);
+            exec[current] = "8D";
+            incrementCurrent();
+            exec[current] = "T" + temp;
+            tempStatic.put("T" + temp, "T" + temp);
+            incrementCurrent();
+            exec[current] = "XX";
+            incrementCurrent();
+            exec[current] = "AE";
+            incrementCurrent();
+            exec[current] = tempStatic.get("T" + temp);
+            temp++;
+            incrementCurrent();
+            exec[current] = "00";
+            incrementCurrent();
+        }
         else if (first.name.equals("Is Equal"))
             genEqual(first);
         else if (first.name.equals("Not Equal"))
@@ -360,25 +398,44 @@ public class CG extends Tree {
         else if (first.token != null) {
             if (first.token.type == Token.grammar.ID) {
                 exec[current] = "AE";
-                current++;
+                incrementCurrent();
                 exec[current] = findTemp(first, scope);
-                current++;
+                incrementCurrent();
                 exec[current] = "XX";
             } else {
                 exec[current] = "A2";
-                current++;
+                incrementCurrent();
                 if (first.token.type == Token.grammar.DIGIT)
                     exec[current] = "0" + first.name;
-                else if (first.token.type == Token.grammar.BOOL_VAL)
-                    exec[current] = first.name;
+                else if (second.token.type == Token.grammar.BOOL_VAL) {
+                    if (second.name.equals("true"))
+                        exec[current] = "01";
+                    else
+                        exec[current] = "02";
+                }
                 else if (first.token.type == Token.grammar.STRING)
                     exec[current] = setString(first);
             }
-            current++;
+            incrementCurrent();
         }
 
-        if (second.name.equals("Add"))
+        if (second.name.equals("Add")) {
             genAdd(second);
+            exec[current] = "8D";
+            incrementCurrent();
+            exec[current] = "T" + temp;
+            tempStatic.put("T" + temp, "T" + temp);
+            incrementCurrent();
+            exec[current] = "XX";
+            incrementCurrent();
+            exec[current] = "EC";
+            incrementCurrent();
+            exec[current] = tempStatic.get("T" + temp);
+            temp++;
+            incrementCurrent();
+            exec[current] = "00";
+            incrementCurrent();
+        }
         else if (second.name.equals("Is Equal"))
             genEqual(second);
         else if (second.name.equals("Not Equal"))
@@ -386,39 +443,44 @@ public class CG extends Tree {
         else if (second.token != null) {
             if (second.token.type == Token.grammar.ID) {
                 exec[current] = "EC";
-                current++;
+                incrementCurrent();
                 exec[current] = findTemp(second, scope);
-                current++;
+                incrementCurrent();
                 exec[current] = "XX";
-                current++;
+                incrementCurrent();
             } else {
                 exec[current] = "A9";
-                current++;
+                incrementCurrent();
                 if (second.token.type == Token.grammar.DIGIT)
                     exec[current] = "0" + second.name;
-                else if (second.token.type == Token.grammar.BOOL_VAL)
-                    exec[current] = second.name;
+                else if (second.token.type == Token.grammar.BOOL_VAL) {
+                    if (second.name.equals("true"))
+                        exec[current] = "01";
+                    else
+                        exec[current] = "02";
+                }
                 else if (second.token.type == Token.grammar.STRING)
                     exec[current] = setString(second);
-                current++;
+                incrementCurrent();
                 exec[current] = "8D";
-                current++;
+                incrementCurrent();
                 tempStatic.put("T:" + scope, "T" + temp);
                 exec[current] = "T" + temp;
-                current++;
+                incrementCurrent();
                 exec[current] = "XX";
-                current++;
+                incrementCurrent();
                 exec[current] = "EC";
-                current++;
+                incrementCurrent();
                 exec[current] = tempStatic.get("T:" + scope);
                 temp++;
-                current++;
+                incrementCurrent();
                 exec[current] = "XX";
-                current++;
+                incrementCurrent();
             }
         }
     }
 
+    // Gen not equal
     private static void genNotEqual(Node child) {
         Node first = child.children.get(0);
         Node second = child.children.get(1);
@@ -428,39 +490,40 @@ public class CG extends Tree {
         } else if (first.token != null){
             if (first.token.type == Token.grammar.DIGIT){
                 exec[current] = "A9";
-                current++;
+                incrementCurrent();
                 exec[current] = "0" + first.name;
-                current++;
+                incrementCurrent();
             } else if (first.token.type == Token.grammar.BOOL_VAL){
                 exec[current] = "A9";
-                current++;
+                incrementCurrent();
                 if (first.name.equals("true"))
                     exec[current] = "01";
                 else
                     exec[current] = "00";
                 bool.add(current);
-                current++;
+                incrementCurrent();
             } else if (first.token.type == Token.grammar.STRING){
                 exec[current] = "A9";
-                current++;
+                incrementCurrent();
                 exec[current] = setString(first);
+                incrementCurrent();
             } else if (first.token.type == Token.grammar.ID){
                 exec[current] = "AD";
-                current++;
+                incrementCurrent();
                 exec[current] = findTemp(first, scope);
-                current++;
+                incrementCurrent();
                 exec[current] = "XX";
-                current++;
+                incrementCurrent();
             }
         }
         exec[current] = "8D";
-        current++;
+        incrementCurrent();
         tempStatic.put(first.name, "T" + temp);
         exec[current] = "T" + temp;
-        current++;
+        incrementCurrent();
         temp++;
         exec[current] = "XX";
-        current++;
+        incrementCurrent();
 
         // copy compare to value
         if (second.name.equals("Add"))
@@ -468,90 +531,98 @@ public class CG extends Tree {
         else if (second.token != null){
             if (second.token.type == Token.grammar.ID){
                 exec[current] = "AD";
-                current++;
+                incrementCurrent();
                 exec[current] = findTemp(second, scope);
-                current++;
+                incrementCurrent();
                 exec[current] = "XX";
-                current++;
+                incrementCurrent();
             } else if (second.token.type == Token.grammar.DIGIT){
                 exec[current] = "A9";
-                current++;
+                incrementCurrent();
                 exec[current] = "0" + second.name;
-                current++;
+                incrementCurrent();
             } else if (second.token.type == Token.grammar.BOOL_VAL){
                 exec[current] = "A9";
-                current++;
+                incrementCurrent();
                 if (second.name.equals("true"))
                     exec[current] = "01";
                 else
                     exec[current] = "00";
                 bool.add(current);
-                current++;
+                incrementCurrent();
             } else if (second.token.type == Token.grammar.STRING){
                 exec[current] = "A9";
-                current++;
+                incrementCurrent();
                 exec[current] = setString(second);
+                incrementCurrent();
             }
         }
         exec[current] = "8D";
-        current++;
+        incrementCurrent();
         tempStatic.put(second.name, "T" + temp);
         exec[current] = "T" + temp;
-        current++;
+        incrementCurrent();
         temp++;
         exec[current] = "XX";
-        current++;
+        incrementCurrent();
 
         // Compare the two newly created temp variables
         exec[current] = "AE";
-        current++;
+        incrementCurrent();
         exec[current] = tempStatic.get(first.name);
-        current++;
+        incrementCurrent();
         exec[current] = "XX";
-        current++;
+        incrementCurrent();
         exec[current] = "EC";
-        current++;
+        incrementCurrent();
         exec[current] =tempStatic.get(second.name);
-        current++;
+        incrementCurrent();
         exec[current] = "XX";
-        current++;
+        incrementCurrent();
 
         // Load the accumulator with 0
         exec[current] = "A9";
-        current++;
+        incrementCurrent();
         exec[current] = "00";
-        current++;
+        incrementCurrent();
         // Branch 2 bytes if t1 != t2
         exec[current] = "D0";
-        current++;
+        incrementCurrent();
         exec[current] = "02";
-        current++;
+        incrementCurrent();
         // If t1 == t2, load accumulator with 1
         exec[current] = "A9";
-        current++;
+        incrementCurrent();
         exec[current] = "01";
-        current++;
+        incrementCurrent();
         // Load x reg with 0
         exec[current] = "A2";
-        current++;
+        incrementCurrent();
         exec[current] = "00";
-        current++;
+        incrementCurrent();
         // Store accumulator in second temp
         exec[current] = "8D";
-        current++;
+        incrementCurrent();
         exec[current] = tempStatic.get(second.name);
-        current++;
+        incrementCurrent();
         exec[current] = "XX";
-        current++;
+        incrementCurrent();
         // Compare second temp and x reg
         exec[current] = "EC";
-        current++;
+        incrementCurrent();
         exec[current] = tempStatic.get(second.name);
-        current++;
+        incrementCurrent();
         exec[current] = "XX";
-        current++;
+        incrementCurrent();
     }
 
+    /**
+     * This method sets the string in the heap. It first checks the string table to see if the same string has already
+     * been added to the heap. If it has it just returns the pointer to that string. If not it adds it to the heap
+     * in reverse order and returns the pointer to the start of the string.
+     * @param var the node of the string
+     * @return the value of the pointer in the heap
+     */
     private static String setString(Node var) {
         if (stringTable.containsKey(var.name))
             return stringTable.get(var.name);
@@ -585,7 +656,7 @@ public class CG extends Tree {
                     }
                 }
                 // Move to next address in the stack
-                current++;
+                incrementCurrent();
                 // Check if the stack has collided with the heap
                 if (current >= heap)
                     return false;
@@ -608,7 +679,6 @@ public class CG extends Tree {
             heap--;
         }
         String truePtr = Integer.toHexString(heap + 1);
-        System.out.println("true: " + truePtr);
         heap--;
 
         for (int i = f.length()-1; i > -1; i--){
@@ -616,20 +686,23 @@ public class CG extends Tree {
             heap--;
         }
         String falsePtr = Integer.toHexString(heap + 1);
-        System.out.println("False: " + falsePtr);
 
-        bool.forEach((Integer) -> {
+
+
+        boolLiteral.forEach((Integer) -> {
             if (exec[Integer].equals("01"))
                 exec[Integer] = truePtr;
             else
                 exec[Integer] = falsePtr;
-
-            exec[Integer - 1] = "A9";
         });
 
         boolPrint.forEach((Integer) -> exec[Integer] = "02");
     }
 
+    /**
+     * This method prints the executable image in a 16x16 grid
+     * @param image The array of opcodes
+     */
     private static void printExec(String[] image){
         int count = 1;
         for (String i: image){
@@ -643,6 +716,12 @@ public class CG extends Tree {
         }
     }
 
+    /**
+     * This method finds a temp variable in the static table. It then returns the value from the hashmap.
+     * @param node input node
+     * @param s current scope
+     * @return the value from the temp hashmap
+     */
     private static String findTemp(Node node, int s) {
         while (!tempStatic.containsKey(node.name + ":" + s))
             s--;
@@ -650,6 +729,11 @@ public class CG extends Tree {
         return tempStatic.get(node.name + ":" + s);
     }
 
+    /**
+     * Traverse the symbol table to find the type of variables
+     * @param var variable
+     * @return type of variable
+     */
     private static String getType(Node var) {
         Node cur = symbol.current;
         if (cur.st.containsKey(var.name))
@@ -668,6 +752,11 @@ public class CG extends Tree {
         return "Error";
     }
 
+    /**
+     * This method sets the current symbol table. Since the nodes of the symbol table are named after their scope, this
+     * looks for the node with the name of the current scope and makes that node the current node.
+     * @param scope current scope
+     */
     private static void setSymbol(String scope) {
         if (!symbol.current.name.equals(scope)){
             for (Node child: symbol.current.children) {
@@ -677,4 +766,20 @@ public class CG extends Tree {
         }
     }
 
+    /**
+     * This method increments current. Using this method helps with the transition between programs and does error
+     * checking. If current becomes larger than 255, print out the error message and then re-call lexer.
+     */
+    private static void incrementCurrent(){
+        current += 1;
+        if (current > 255) {
+            System.out.println("Error: size limit exceeded");
+            // If this isn't the last program in the text file, continue
+            if (Compiler.inputFile.length > Lexer.current)
+                Lexer.lexer(Compiler.inputFile);
+
+            // After this terminate the program
+            System.exit(-1);
+        }
+    }
 }

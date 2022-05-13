@@ -75,6 +75,7 @@ public class Parser {
         parseStateList();
         match(Token.grammar.R_BRACE);
         cst.moveUp();
+        ast.moveUp();
     }
 
     // Parse statementlist

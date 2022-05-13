@@ -123,33 +123,13 @@ public class Tree {
      * its parent's children to its children. It then removes all other children from its parent.
      */
     public void restructure() {
-
         // Add current node and parent of current node to variables for easy access
         Node current = this.current;
         Node parent = this.current.parent;
-        // Temp variable to keep track of Add nodes
-        Node temp = null;
-        // If the parent has
-        if (current.name.equals("Add") || current.name.equals("Is Equal") || current.name.equals("Not Equal")) {
-            for (Node child : parent.children)
-                if ((child.name.equals("Add") || child.name.equals("Is Equal")) || child.name.equals("Not Equal"))
-                    if (!current.equals(child))
-                        temp = child;
-        }
-
-        // Add all the children of parent to the children of current
-        current.children.addAll(parent.children);
-        // Remove current from its own children because that would be weird
-        current.children.remove(current);
-        // Clear all the children from the parent
-        parent.children.clear();
-        // If temp is not null, add it back to children of parent
-        if (temp != null && current.children.size() > 1) {
-            current.children.remove(temp);
-            parent.children.add(temp);
-        }
-        // Re-add the current node to the children of parent
-        parent.children.add(current);
+        // Add the child at the index 1 to the left of the children of the current
+        current.children.add(parent.children.get(parent.children.lastIndexOf(current) - 1));
+        // Remove that same child from the children of the parent
+        parent.children.remove(parent.children.get(parent.children.lastIndexOf(current) - 1));
     }
 
     public void assignRestructure() {
