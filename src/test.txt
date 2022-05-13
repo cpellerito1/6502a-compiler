@@ -68,8 +68,49 @@ a = "this works based on our grammar"
 if true {
 print(a)}
 }$
-{int a a = 2
+{string a
+a = "this is going to hurt this is going to hurt this is going to hurt this is going to hurt this is going to hurt this is going to hurt this is going to hurt this is going to hurt this is going to hurt"
 int b b = 2
-if ((a==b) == (a!=4)){
-print("works")}}$
+boolean c c = false
+print(c)
+if (b == 2){
+print(a)
+}
+}$
+{int a a = 5
+while (a != 9){
+print(a)
+if (1 + a == 7){
+print("works")
+}
+a = 1 + a
+}
+if (a == 9){
+print(true)
+}
+string d 
+d = "this is over"
+print(d)
+}$
+{int a a = 1
+int b b = 2
+while (a != 5){
+print(a)
+while (b != 4){
+print(b)
+b = 1 + b
+}
+a = 1 + a
+}
+boolean d d = false
+if (d == false){
+print(true)
+}
+if (d != true){
+print(false)
+}
+}$
+
+
+
 
