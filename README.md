@@ -1,9 +1,7 @@
 # 6502a-compiler
-## Grading
-I will be developing on main and pushing to project branches so please grade project 4 branch
 
 ## Description
-This program is a compiler written using Java. To run this compiler, download the source code and run it on the command line using a text file as input. For example:
+This program is a compiler written using Java. To run this compiler, download the source code and compiler it on the command line by typing "javac Compiler.java". Then run it using a text file as input. For example:
 java Compiler text.txt
 
 ## Grammar
