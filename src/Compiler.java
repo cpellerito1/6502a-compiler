@@ -39,6 +39,15 @@ public class Compiler {
         // Read file from standard input
         File inputFile = new File(input);
 
+        // Make sure the input file is a text file
+        String name = inputFile.getName();
+        int dot = name.lastIndexOf('.');
+        name = name.substring(dot);
+        if (!name.equals("txt")) {
+            System.out.println("Error: input file must be a text file (.txt)");
+            System.exit(-1);
+        }
+
         // Initialize String to read the file to.
         String inputString = "";
 
